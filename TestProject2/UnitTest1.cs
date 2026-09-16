@@ -42,11 +42,11 @@ public class StorageTests
         storage.Add("Roblox");
         // Act
         ToDo toDo = storage.FindToDo(0);
-        //toDo.Title = "Dota 2";
-        // toDo.IsCompleted = true;
+        toDo.Title = "Dota 2";
+        toDo.IsCompleted = true;
 
         // Assert
-        Assert.Equal(toDo, storage.FindToDo(0));
+        Assert.NotEqual(toDo, storage.FindToDo(0));
     }
     [Fact]
     public void FindToDos_ShouldDiferentValues()
