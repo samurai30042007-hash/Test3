@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../TestProject1/TestProject1.csproj" Id="dde407ce-7408-40a0-a281-9b5b67b8e37d" />
+  <Project Path="Test3.csproj" />
+</Solution>
