@@ -37,16 +37,16 @@ public class StorageTests
         // Arrange
 
         var storage = new Storage();
-        storage.Add("Dota 3");
+        int id = storage.Add("Dota 3");
         storage.Add("Minecraft");
         storage.Add("Roblox");
         // Act
-        ToDo toDo = storage.FindToDo(0);
+        ToDo toDo = storage.FindToDo(id);
         toDo.Title = "Dota 2";
         toDo.IsCompleted = true;
 
         // Assert
-        Assert.NotEqual(toDo, storage.FindToDo(0));
+        Assert.NotEqual(toDo, storage.FindToDo(id));
     }
     [Fact]
     public void FindToDos_ShouldDiferentValues()
