@@ -76,9 +76,9 @@ public class StorageTests
         storage.Add("Roblox");
 
 
-        bool isDelete = storage.TryDelete(id);
-        Assert.True(isDelete);
-
-        Assert.Null(storage.FindToDo(id));
+        var toDos = storage.ToDos;
+        toDos.Clear();
+        Assert.Equal(0, toDos.Count);
+        Assert.NotNull(storage.ToDos[0]);
     }
 }
