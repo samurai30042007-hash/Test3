@@ -46,7 +46,11 @@ public class StorageTests
         toDo.IsCompleted = true;
 
         // Assert
-        Assert.NotEqual(toDo, storage.FindToDo(id));
+        Assert.NotEqual(toDo.IsCompleted, storage.FindToDo(id).IsCompleted);
+        Assert.NotEqual(toDo.Title, storage.FindToDo(id).Title);
+        Assert.Equal(toDo.Id, storage.FindToDo(id).Id);
+
+
     }
     [Fact]
     public void FindToDos_ShouldDiferentValues()
@@ -60,6 +64,8 @@ public class StorageTests
         toDos[0].Title = "Dota 2";
         toDos[0].IsCompleted = true;
 
-        Assert.NotEqual(toDos, storage.ToDos);
+        Assert.NotEqual(toDos[0].IsCompleted, storage.FindToDo(toDos[0].Id).IsCompleted);
+        Assert.NotEqual(toDos[0].Title, storage.FindToDo(toDos[0].Id).Title);
+        Assert.Equal(toDos[0].Id, storage.FindToDo(toDos[0].Id).Id);
     }
 }
