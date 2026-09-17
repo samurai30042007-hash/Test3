@@ -1,4 +1,5 @@
-﻿using Test3;
+﻿using System.Diagnostics;
+using Test3;
 
 namespace Test3.Tests;
 
@@ -71,14 +72,26 @@ public class StorageTests
     public void FindToDos_ShouldDeleteValue()
     {
         var storage = new Storage();
-        int id = storage.Add("Dota 3");
-        storage.Add("Minecraft");
-        storage.Add("Roblox");
+        int[] id = new int[3];
+        id[0] = storage.Add("Dota 3");
+        id[1] = storage.Add("Minecraft");
+        id[2] = storage.Add("Roblox");
 
 
         var toDos = storage.ToDos;
         toDos.Clear();
         Assert.Equal(0, toDos.Count);
-        Assert.NotNull(storage.ToDos[0]);
+
+        Assert.NotNull(storage.FindToDo(id[0]));
+        Assert.Equal("Dota 3", storage.FindToDo(id[0]).Title);
+        Assert.Equal(false, storage.FindToDo(id[0]).IsCompleted);
+
+        Assert.NotNull(storage.FindToDo(id[1]));
+        Assert.Equal("Minecraft", storage.FindToDo(id[1]).Title);
+        Assert.Equal(false, storage.FindToDo(id[1]).IsCompleted);
+
+        Assert.NotNull(storage.FindToDo(id[2]));
+        Assert.Equal("Roblox", storage.FindToDo(id[2]).Title);
+        Assert.Equal(false, storage.FindToDo(id[2]).IsCompleted);
     }
 }
