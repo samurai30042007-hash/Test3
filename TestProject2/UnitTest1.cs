@@ -46,9 +46,8 @@ public class StorageTests
         toDo.IsCompleted = true;
 
         // Assert
-        Assert.NotEqual(toDo.IsCompleted, storage.FindToDo(id).IsCompleted);
-        Assert.NotEqual(toDo.Title, storage.FindToDo(id).Title);
-        Assert.Equal(toDo.Id, storage.FindToDo(id).Id);
+        Assert.Equal("Dota 3", storage.FindToDo(id)?.Title); // НАсколько я помню ? спасет и проверит  null значение
+        Assert.Equal(false, storage.FindToDo(id)?.IsCompleted);
 
 
     }
@@ -63,9 +62,23 @@ public class StorageTests
         var toDos = storage.ToDos;
         toDos[0].Title = "Dota 2";
         toDos[0].IsCompleted = true;
+        int id = toDos[0].Id;
 
-        Assert.NotEqual(toDos[0].IsCompleted, storage.FindToDo(toDos[0].Id).IsCompleted);
-        Assert.NotEqual(toDos[0].Title, storage.FindToDo(toDos[0].Id).Title);
-        Assert.Equal(toDos[0].Id, storage.FindToDo(toDos[0].Id).Id);
+        Assert.Equal("Dota 3", storage.FindToDo(id)?.Title); 
+        Assert.Equal(false, storage.FindToDo(id)?.IsCompleted);
+    }
+    [Fact]
+    public void FindToDos_ShouldDeleteValue()
+    {
+        var storage = new Storage();
+        int id = storage.Add("Dota 3");
+        storage.Add("Minecraft");
+        storage.Add("Roblox");
+
+
+        bool isDelete = storage.TryDelete(id);
+        Assert.True(isDelete);
+
+        Assert.Null(storage.FindToDo(id));
     }
 }
