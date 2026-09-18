@@ -2,9 +2,11 @@ using Test3;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<Storage>();
+builder.Services.AddScoped<LifeTimeProbe>();
+builder.Services.AddTransient<ReadProbe>();
 
 var app = builder.Build();
-var st = app.Services.GetService<Storage>();
+var st = app.Services.GetRequiredService<Storage>();
 st.Add("Task 1", false);
 st.Add( "Task 2", false);
 
@@ -102,6 +104,15 @@ app.MapDelete("/ToDo/{id}", (int id, Storage storage) =>
         return Results.NotFound();
     }
     return Results.NoContent();
+});
+
+app.MapGet("di-probe", (LifeTimeProbe first, LifeTimeProbe second) =>
+{
+    return new {First = first.Id, Second = second.Id};
+});
+app.MapGet("di-constructor", (ReadProbe probe, LifeTimeProbe lifeProbe) =>
+{
+    return new { Probe = probe.Read(), LifeProbe = lifeProbe.Id };
 });
 
 app.Run();

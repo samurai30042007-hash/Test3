@@ -183,7 +183,6 @@
     {
         public string? Title { get; set; }
     }
-
     public class UpdateTitleTaskRequest
     {
         public string? Title { get; set; }
