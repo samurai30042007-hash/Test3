@@ -1,17 +1,20 @@
 using Test3;
 
 var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
-Storage storage = new();
-storage.Add("Task 1", false);
-storage.Add( "Task 2", false);
+builder.Services.AddSingleton<Storage>();
 
-app.MapGet("/ToDo", () =>
+var app = builder.Build();
+var st = app.Services.GetService<Storage>();
+st.Add("Task 1", false);
+st.Add( "Task 2", false);
+
+
+app.MapGet("/ToDo", (Storage storage) =>
 {
     return storage.ToDos;
 });
 
-app.MapGet("/ToDo/{id}", (int id) =>
+app.MapGet("/ToDo/{id}", (int id, Storage storage) =>
 {
     var task = storage.FindToDo(id);
     if (task is null)
@@ -21,7 +24,7 @@ app.MapGet("/ToDo/{id}", (int id) =>
     return Results.Ok(task);
 });
 
-app.MapPost("/ToDo",(CreateTaskRequest request) =>
+app.MapPost("/ToDo",(CreateTaskRequest request, Storage storage) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
@@ -31,7 +34,7 @@ app.MapPost("/ToDo",(CreateTaskRequest request) =>
     return Results.Created($"/ToDo/{id}", storage.FindToDo(id));
 });
 
-app.MapPatch("/ToDo/{id}/Title", (int id, UpdateTitleTaskRequest request) =>
+app.MapPatch("/ToDo/{id}/Title", (int id, UpdateTitleTaskRequest request, Storage storage) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
@@ -54,7 +57,7 @@ app.MapPatch("/ToDo/{id}/Title", (int id, UpdateTitleTaskRequest request) =>
 
 });
 
-app.MapPatch("/ToDo/{id}/IsCompleted", (int id, UpdateIsCompletedTaskRequest request) =>
+app.MapPatch("/ToDo/{id}/IsCompleted", (int id, UpdateIsCompletedTaskRequest request, Storage storage) =>
 {
     try
     {
@@ -70,7 +73,7 @@ app.MapPatch("/ToDo/{id}/IsCompleted", (int id, UpdateIsCompletedTaskRequest req
 
 });
 
-app.MapPut("/ToDo/{id}", (int id, UpdateTaskRequest request) =>
+app.MapPut("/ToDo/{id}", (int id, UpdateTaskRequest request, Storage storage) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
@@ -91,7 +94,7 @@ app.MapPut("/ToDo/{id}", (int id, UpdateTaskRequest request) =>
     return Results.Ok(storage.FindToDo(id));
 });
 
-app.MapDelete("/ToDo/{id}", (int id) =>
+app.MapDelete("/ToDo/{id}", (int id, Storage storage) =>
 {
     var deleted = storage.TryDelete(id);
     if (!deleted)
