@@ -94,4 +94,15 @@ public class StorageTests
         Assert.Equal("Roblox", storage.FindToDo(id[2]).Title);
         Assert.Equal(false, storage.FindToDo(id[2]).IsCompleted);
     }
+
+    [Fact]
+    public void Task2()
+    {
+        var storage = new Storage();
+        int id = storage.Add("Dota 3");
+        Assert.Throws<ArgumentNullException>(() => storage.TryPatchTitle(id, ""));
+        var toDo = storage.FindToDo(id);
+        Assert.NotNull(toDo);
+        Assert.Equal("Dota 3", toDo.Title);
+    }
 }

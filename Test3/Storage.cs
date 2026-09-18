@@ -134,7 +134,7 @@
                 toDo.Title = title;
             }
         }
-        public void TryPatchIsComplete(int id, bool isComplete)
+        public void PatchIsComplete(int id, bool isComplete)
         {
             lock (_lock)
             {

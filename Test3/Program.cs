@@ -4,6 +4,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<Storage>();
 builder.Services.AddScoped<LifeTimeProbe>();
 builder.Services.AddTransient<ReadProbe>();
+builder.Services.AddScoped<UniqueId>();
+builder.Services.AddScoped<Log>();
+builder.Services.AddScoped<Report>();
 
 var app = builder.Build();
 var st = app.Services.GetRequiredService<Storage>();
@@ -11,8 +14,8 @@ st.Add("Task 1", false);
 st.Add( "Task 2", false);
 
 
-app.MapGet("/ToDo", (Storage storage) =>
-{
+app.MapGet("/ToDo", (Storage storage) => { 
+
     return storage.ToDos;
 });
 
@@ -56,20 +59,19 @@ app.MapPatch("/ToDo/{id}/Title", (int id, UpdateTitleTaskRequest request, Storag
     }
     return Results.Ok(storage.FindToDo(id));    
 
-
+    
 });
 
 app.MapPatch("/ToDo/{id}/IsCompleted", (int id, UpdateIsCompletedTaskRequest request, Storage storage) =>
 {
     try
     {
-        storage.TryPatchIsComplete(id, request.IsCompleted);
+        storage.PatchIsComplete(id, request.IsCompleted);
     }
     catch (ArgumentException)
     {
         return Results.NotFound();
     }
-
     return Results.Ok(storage.FindToDo(id));
     
 
@@ -113,6 +115,10 @@ app.MapGet("di-probe", (LifeTimeProbe first, LifeTimeProbe second) =>
 app.MapGet("di-constructor", (ReadProbe probe, LifeTimeProbe lifeProbe) =>
 {
     return new { Probe = probe.Read(), LifeProbe = lifeProbe.Id };
+});
+app.MapGet("Test", (UniqueId uniqueId, Log log, Report report) =>
+{
+    return new { LogMessage = log.LogMessage(), ReportMessage = report.ReportMessage() };
 });
 
 app.Run();
