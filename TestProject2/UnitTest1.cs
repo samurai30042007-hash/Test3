@@ -100,9 +100,10 @@ public class StorageTests
     {
         var storage = new Storage();
         int id = storage.Add("Dota 3");
-        Assert.Throws<ArgumentNullException>(() => storage.TryPatchTitle(id, ""));
+        Assert.Throws<ArgumentNullException>(() => storage.TryPut(id, "", true));
         var toDo = storage.FindToDo(id);
         Assert.NotNull(toDo);
         Assert.Equal("Dota 3", toDo.Title);
+        Assert.False(toDo.IsCompleted);
     }
 }
