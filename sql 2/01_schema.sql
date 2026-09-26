@@ -9,7 +9,7 @@ create table tasks(
 id int  generated always as identity primary key,
 title text not null check(length(trim(title)) > 0),
 iscomplete boolean not null default false,
-created_at timestamptz default CURRENT_TIMESTAMP,
+created_at timestamptz default CURRENT_TIMESTAMP NOT NULL,
 owner_id int not null references public.users(id) on delete cascade
 );
 
