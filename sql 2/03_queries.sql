@@ -31,6 +31,6 @@ select u.id,u.name, t.id, t.title, t.iscomplete
 from  public.users as u
 left join public.tasks as t
 on u.id = t.owner_id 
-where iscomplete = false
+where t.iscomplete = false
 order by u.id, t.id asc;;
 -- 3
