@@ -133,7 +133,6 @@ namespace Test3
                 UPDATE public.tasks
                 SET title = $1
                 WHERE id = $2
-                RETURNING id
                 """, conection);
             command.Parameters.Add(new NpgsqlParameter { Value = title });
             command.Parameters.Add(new NpgsqlParameter { Value = id });
@@ -147,7 +146,6 @@ namespace Test3
                 UPDATE public.tasks
                 SET iscompleted = $1
                 WHERE id = $2
-                RETURNING id
                 """, conection);
             command.Parameters.Add(new NpgsqlParameter { Value = isComplete });
             command.Parameters.Add(new NpgsqlParameter { Value = id });
@@ -161,7 +159,6 @@ namespace Test3
                 UPDATE public.tasks
                 SET iscompleted = $1, title = $2, owner_id = $3
                 WHERE id = $4
-                RETURNING id
                 """, conection);
 
             command.Parameters.Add(new NpgsqlParameter { Value = isComplete });

@@ -2,8 +2,8 @@ using Npgsql;
 using Test3;
 
 var builder = WebApplication.CreateBuilder(args);
-var str = builder.Configuration.GetConnectionString("ToDoDb");
-builder.Services.AddSingleton<NpgsqlDataSource>(_ => str is null ? throw new Exception (message: "Not find db config") : NpgsqlDataSource.Create(str));
+var str = builder.Configuration.GetConnectionString("ToDoDb") ?? throw new Exception(message: "Not find db config");
+builder.Services.AddSingleton<NpgsqlDataSource>(_ =>  NpgsqlDataSource.Create(str));
 builder.Services.AddScoped<Storage>();
 builder.Services.AddScoped<LifeTimeProbe>();
 builder.Services.AddTransient<ReadProbe>();
@@ -47,7 +47,7 @@ app.MapPost("/ToDo",  async (CreateTaskRequest request, Storage storage, Cancell
     int? id = await storage.Add(request.Title, request.OwnerId, cancellation);
     if (id is null)
     {
-        return Results.BadRequest("Invalid owner id value");
+        return Results.NotFound("Invalid owner id value");
     }
     return Results.Created($"/ToDo/{id}", await storage.FindToDo((int)id, cancellation)); 
 });
@@ -60,7 +60,7 @@ app.MapPatch("/ToDo/{id}/Title", async (int id, UpdateTitleTaskRequest request, 
     }
     if (!await storage.TryPatchTitle(id, request.Title, cancellation))
     {
-        return Results.BadRequest("Invalid id value");
+        return Results.NotFound("Invalid id value");
     }
     
     return Results.Ok(await storage.FindToDo(id, cancellation));
@@ -73,7 +73,7 @@ app.MapPatch("/ToDo/{id}/IsCompleted", async (int id, UpdateIsCompletedTaskReque
     
     if (!await storage.TryPatchIsComplete(id, request.IsCompleted, cancellation))
     {
-        return Results.BadRequest("Invalid id value");
+        return Results.NotFound("Invalid id value");
     }
     
     
