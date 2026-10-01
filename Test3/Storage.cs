@@ -145,7 +145,7 @@ namespace Test3
             await using var conection = await _npgsqlDataSource.OpenConnectionAsync(cancellationToken);
             await using var command = new NpgsqlCommand("""
                 UPDATE public.tasks
-                SET iscomplete = $1
+                SET iscompleted = $1
                 WHERE id = $2
                 RETURNING id
                 """, conection);
@@ -154,21 +154,34 @@ namespace Test3
             var result = await command.ExecuteNonQueryAsync(cancellationToken);
             return result > 0;
         }
-        public async Task<bool> TryPut(int id, string title, bool isComplete,int ownerId, CancellationToken cancellationToken)
+        public async Task<MessegStoreg> TryPut(int id, string title, bool isComplete,int ownerId, CancellationToken cancellationToken)
         {
             await using var conection = await _npgsqlDataSource.OpenConnectionAsync(cancellationToken);
             await using var command = new NpgsqlCommand("""
                 UPDATE public.tasks
-                SET iscomplete = $1, title = $2, owner_id = $3
+                SET iscompleted = $1, title = $2, owner_id = $3
                 WHERE id = $4
                 RETURNING id
                 """, conection);
+
             command.Parameters.Add(new NpgsqlParameter { Value = isComplete });
             command.Parameters.Add(new NpgsqlParameter { Value = title });
             command.Parameters.Add(new NpgsqlParameter { Value = ownerId });
             command.Parameters.Add(new NpgsqlParameter { Value = id });
-            var result = await command.ExecuteNonQueryAsync(cancellationToken);
-            return result > 0;
+            int result;
+            try
+            {
+                result = await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.ForeignKeyViolation)
+            {
+
+                return MessegStoreg.ForeignKeyViolation;
+            }
+            if (result > 0){
+                return MessegStoreg.Ok;
+            }
+            return MessegStoreg.NotFound;
         }
 
         public async Task<bool> TryDelete(int id, CancellationToken cancellationToken)
@@ -176,7 +189,7 @@ namespace Test3
             await using var conection = await _npgsqlDataSource.OpenConnectionAsync(cancellationToken);
             await using var command = new NpgsqlCommand("""
                 DELETE FROM public.tasks
-                WHERE id = $4
+                WHERE id = $1
                 RETURNING id
                 """, conection);
             command.Parameters.Add(new NpgsqlParameter { Value = id });
@@ -206,5 +219,14 @@ namespace Test3
         public string? Title { get; set; }
         public bool IsCompleted { get; set; }
         public int  OwnerId { get; set; }
+    }
+
+    public enum MessegStoreg
+    {
+        NotFound,
+        ForeignKeyViolation,
+        Ok
+
+
     }
 }

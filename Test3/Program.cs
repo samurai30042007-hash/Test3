@@ -88,12 +88,26 @@ app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, Storage stora
     {
         return Results.BadRequest("Title cannot be empty.");
     }
-    if (!await storage.TryPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation))
+    var result = await storage.TryPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation)
+    switch (result) // вообще я только понял что по хорошему нужно передавать request
     {
-        return Results.BadRequest("Invalid id value");
+        case MessegStoreg.Ok:
+        {
+                return Results.Ok(await storage.FindToDo(id, cancellation));
+        }
+        case MessegStoreg.ForeignKeyViolation:
+        {
+                return Results.NotFound();
+        }
+        case MessegStoreg.NotFound:
+        {
+                return Results.NotFound();
+        }
+        default:
+                throw new ArgumentException("Invalid MessegStoreg value");
     }
 
-    return Results.Ok(await storage.FindToDo(id, cancellation));
+    ;
 });
 
 app.MapDelete("/ToDo/{id}", async (int id, Storage storage, CancellationToken cancellation) =>
