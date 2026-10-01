@@ -27,6 +27,13 @@ app.Use(async (context, next) =>
     }
 });
 
+app.MapGet("/ToDos", async(Storage storage, CancellationToken cancellation) =>
+{
+    var tasks = await storage.ToDos(cancellation);
+    return Results.Ok(tasks);
+    
+
+});
 
 app.MapGet("/ToDo/{id}", async (int id, Storage storage, CancellationToken cancellation) =>
 {
@@ -47,7 +54,7 @@ app.MapPost("/ToDo",  async (CreateTaskRequest request, Storage storage, Cancell
     int? id = await storage.Add(request.Title, request.OwnerId, cancellation);
     if (id is null)
     {
-        return Results.NotFound("Invalid owner id value");
+        return Results.BadRequest("Invalid owner id value");
     }
     return Results.Created($"/ToDo/{id}", await storage.FindToDo((int)id, cancellation)); 
 });
@@ -88,7 +95,7 @@ app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, Storage stora
     {
         return Results.BadRequest("Title cannot be empty.");
     }
-    var result = await storage.TryPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation)
+    var result = await storage.TryPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation);
     switch (result) // вообще я только понял что по хорошему нужно передавать request
     {
         case MessegStoreg.Ok:
@@ -97,7 +104,7 @@ app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, Storage stora
         }
         case MessegStoreg.ForeignKeyViolation:
         {
-                return Results.NotFound();
+                return Results.BadRequest();
         }
         case MessegStoreg.NotFound:
         {
@@ -106,8 +113,6 @@ app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, Storage stora
         default:
                 throw new ArgumentException("Invalid MessegStoreg value");
     }
-
-    ;
 });
 
 app.MapDelete("/ToDo/{id}", async (int id, Storage storage, CancellationToken cancellation) =>

@@ -83,7 +83,22 @@ namespace Test3
             _npgsqlDataSource = npgsqlDataSource;
         }
 
-        
+        public async Task<List<ToDo>> ToDos(CancellationToken cancellation)
+        {
+            await using var connection = await _npgsqlDataSource.OpenConnectionAsync(cancellation);
+            await using var command = new NpgsqlCommand("""
+                SELECT id, title, iscompleted, owner_id, created_at
+                FROM public.tasks
+                """, connection);
+            var reader = await command.ExecuteReaderAsync(cancellation);
+            List<ToDo> toDos = new();
+            while (await reader.ReadAsync(cancellation))
+            {
+                toDos.Add(readDbLine(reader));
+            }
+            return toDos;
+
+        }
         public async Task<ToDo?> FindToDo(int id, CancellationToken cancellationToken) // Я только что понял что я должен был делать не через null, а через TryFind.... Так было бы лучше 
         {
             await using var conection = await _npgsqlDataSource.OpenConnectionAsync(cancellationToken);
