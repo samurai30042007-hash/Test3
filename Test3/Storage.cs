@@ -90,7 +90,7 @@ namespace Test3
                 SELECT id, title, iscompleted, owner_id, created_at
                 FROM public.tasks
                 """, connection);
-            var reader = await command.ExecuteReaderAsync(cancellation);
+            await using var reader = await command.ExecuteReaderAsync(cancellation);
             List<ToDo> toDos = new();
             while (await reader.ReadAsync(cancellation))
             {
@@ -108,7 +108,7 @@ namespace Test3
                 WHERE owner_id = $1
                 """, connection);
             command.Parameters.Add(new NpgsqlParameter { Value = ownerId });
-            var reader = await command.ExecuteReaderAsync(cancellation);
+            await using var reader = await command.ExecuteReaderAsync(cancellation);
             List<ToDo> toDos = new();
             while (await reader.ReadAsync(cancellation))
             {
