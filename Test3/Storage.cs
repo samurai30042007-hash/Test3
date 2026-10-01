@@ -1,15 +1,21 @@
-﻿namespace Test3
+﻿using Npgsql;
+
+namespace Test3
 {
     public class ToDo
     {
         private int _id;
         private string _title;
         private bool _isCompleted;
-        public ToDo(int id, string title, bool iscompleted)
+        private int _ownerId;
+        private DateTime _createAt;
+        public ToDo(int id, string title, bool iscompleted, int ownerId, DateTime createAt)
         {
             Title = title;
             Id = id;
             IsCompleted = iscompleted;
+            OwnerId = ownerId;
+            CreateAt = createAt;
         }
 
         public int Id
@@ -42,146 +48,150 @@
 
             set { _isCompleted = value; }
         }
+        public int OwnerId
+        {
+            get { return _ownerId; }
+            private set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentException("Wrong owner id value");
+                }
+                _ownerId = value;
+            }
+        }
+        public DateTime CreateAt
+        {
+            get { return _createAt; }
+            private set
+            {
+                _createAt = value;
+            }
+        }
         public ToDo Copy()
         {
-            return new ToDo(_id, _title, _isCompleted);
+            return new ToDo(_id, _title, _isCompleted, _ownerId, _createAt);
         }
+        
     }
     public class Storage
     {
-        private Dictionary<int, ToDo> _ToDos;
-        private int _nextId = 0;
+        private NpgsqlDataSource _npgsqlDataSource;
 
-        private object _lock = new object();
-
-        public Storage()
+        public Storage(NpgsqlDataSource npgsqlDataSource)
         {
-            _ToDos = new();
-        }
-        public Storage(Dictionary<int, ToDo> ToDos)
-        {
-            _ToDos = ToDos;
+            _npgsqlDataSource = npgsqlDataSource;
         }
 
-        private int NextId
+        
+        public async Task<ToDo?> FindToDo(int id, CancellationToken cancellationToken) // Я только что понял что я должен был делать не через null, а через TryFind.... Так было бы лучше 
         {
-            get
+            await using var conection = await _npgsqlDataSource.OpenConnectionAsync(cancellationToken);
+            await using var command = new NpgsqlCommand("""
+                SELECT id, title, iscompleted, owner_id, created_at
+                FROM public.tasks
+                WHERE id = $1
+                """, conection);
+            command.Parameters.Add(new NpgsqlParameter { Value = id});
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            bool isRead = await reader.ReadAsync(cancellationToken);
+            if (!isRead)
             {
-                return Interlocked.Increment(ref _nextId);
-            }
-        }
-
-        public List<ToDo> ToDos // хотел использовать что-то типо Copy но не нашел
-        {
-            get
-            {
-                lock (_lock)
-                {
-                    if (_ToDos is null)
-                    {
-                        return new List<ToDo>();
-                    }
-                    List<ToDo> ToDosCopy = new();
-                    foreach (var toDo in _ToDos)
-                    {
-                        ToDosCopy.Add(toDo.Value.Copy());
-                    }
-                    return ToDosCopy;
-                }
-            }
-
-        }
-        public ToDo? FindToDo(int id) // Я только что понял что я должен был делать не через null, а через TryFind.... Так было бы лучше 
-        {
-            lock (_lock)
-            {
-                ToDo toDo;
-                bool isFind = _ToDos.TryGetValue(id, out toDo);
-                if (isFind)
-                {
-                    return toDo.Copy();
-                }
                 return null;
             }
+            return readDbLine(reader);
         }
-        public int Add(string title, bool isComplete = false)
+        public async Task<int?> Add(string title, int ownerId, CancellationToken cancellationToken, bool isComplete = false)
         {
-            lock (_lock)
+            await using var conection = await _npgsqlDataSource.OpenConnectionAsync(cancellationToken);
+            await using var command = new NpgsqlCommand("""
+                INSERT INTO public.tasks (title, iscompleted, owner_id)
+                VALUES ($1, $2, $3)
+                RETURNING id
+                """, conection);
+            command.Parameters.Add(new NpgsqlParameter { Value = title });
+            command.Parameters.Add(new NpgsqlParameter { Value = isComplete });
+            command.Parameters.Add(new NpgsqlParameter { Value = ownerId });
+            int id;
+            try
             {
-                if (string.IsNullOrWhiteSpace(title))
-                {
-                    throw new ArgumentNullException("Null value title");
-                }
-                int id = NextId;
-                _ToDos.Add(id, new ToDo(id, title, isComplete));
-                return id;
+                 id = (int)(await command.ExecuteScalarAsync(cancellationToken))!;
             }
-        }
-        public void TryPatchTitle(int id, string title)
-        {
-            lock (_lock)
+            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.ForeignKeyViolation)
             {
-                ToDo toDo;
-                bool isFind = _ToDos.TryGetValue(id, out toDo);
-                if (string.IsNullOrWhiteSpace(title))
-                {
-                    throw new ArgumentNullException("Null value title");
-                }
-                if (toDo is null)
-                {
-                    throw new ArgumentException("No such id");
-                }
-                toDo.Title = title;
-            }
-        }
-        public void PatchIsComplete(int id, bool isComplete)
-        {
-            lock (_lock)
-            {
-                ToDo toDo;
-                bool isFind = _ToDos.TryGetValue(id, out toDo);
 
-                if (toDo is null)
-                {
-                    throw new ArgumentException("No such id1");
-                }
-                toDo.IsCompleted = isComplete;
+                return null;
             }
+
+            return id;
+
         }
-        public void TryPut(int id, string title, bool isComplete)
+        public async Task<bool> TryPatchTitle(int id, string title, CancellationToken cancellationToken)
         {
-            lock (_lock)
-            {
-                ToDo toDo;
-                bool isFind = _ToDos.TryGetValue(id, out toDo);
-
-                if (string.IsNullOrWhiteSpace(title)) 
-                {
-                throw new ArgumentNullException("Null value title");
-                }
-
-                if (toDo is null)
-                {
-                    throw new ArgumentException("No such id");
-                }
-                toDo.IsCompleted = isComplete;
-                toDo.Title = title;
-            }
+            await using var conection = await _npgsqlDataSource.OpenConnectionAsync(cancellationToken);
+            await using var command = new NpgsqlCommand("""
+                UPDATE public.tasks
+                SET title = $1
+                WHERE id = $2
+                RETURNING id
+                """, conection);
+            command.Parameters.Add(new NpgsqlParameter { Value = title });
+            command.Parameters.Add(new NpgsqlParameter { Value = id });
+            var result = await command.ExecuteNonQueryAsync(cancellationToken);
+            return result > 0;
         }
-
-        public bool TryDelete(int id)
+        public async Task<bool> TryPatchIsComplete(int id, bool isComplete, CancellationToken cancellationToken)
         {
-            lock (_lock)
-            {
-                return _ToDos.Remove(id);
-            }
+            await using var conection = await _npgsqlDataSource.OpenConnectionAsync(cancellationToken);
+            await using var command = new NpgsqlCommand("""
+                UPDATE public.tasks
+                SET iscomplete = $1
+                WHERE id = $2
+                RETURNING id
+                """, conection);
+            command.Parameters.Add(new NpgsqlParameter { Value = isComplete });
+            command.Parameters.Add(new NpgsqlParameter { Value = id });
+            var result = await command.ExecuteNonQueryAsync(cancellationToken);
+            return result > 0;
+        }
+        public async Task<bool> TryPut(int id, string title, bool isComplete,int ownerId, CancellationToken cancellationToken)
+        {
+            await using var conection = await _npgsqlDataSource.OpenConnectionAsync(cancellationToken);
+            await using var command = new NpgsqlCommand("""
+                UPDATE public.tasks
+                SET iscomplete = $1, title = $2, owner_id = $3
+                WHERE id = $4
+                RETURNING id
+                """, conection);
+            command.Parameters.Add(new NpgsqlParameter { Value = isComplete });
+            command.Parameters.Add(new NpgsqlParameter { Value = title });
+            command.Parameters.Add(new NpgsqlParameter { Value = ownerId });
+            command.Parameters.Add(new NpgsqlParameter { Value = id });
+            var result = await command.ExecuteNonQueryAsync(cancellationToken);
+            return result > 0;
         }
 
+        public async Task<bool> TryDelete(int id, CancellationToken cancellationToken)
+        {
+            await using var conection = await _npgsqlDataSource.OpenConnectionAsync(cancellationToken);
+            await using var command = new NpgsqlCommand("""
+                DELETE FROM public.tasks
+                WHERE id = $4
+                RETURNING id
+                """, conection);
+            command.Parameters.Add(new NpgsqlParameter { Value = id });
+            var result = await command.ExecuteNonQueryAsync(cancellationToken);
+            return result > 0;
+        }
+
+        private ToDo readDbLine(NpgsqlDataReader reader) => new ToDo(reader.GetInt32(0), reader.GetString(1), reader.GetBoolean(2), reader.GetInt32(3), reader.GetDateTime(4));
+        
 
     }
     public class CreateTaskRequest
     {
         public string? Title { get; set; }
+        public int OwnerId {  get; set; }
     }
     public class UpdateTitleTaskRequest
     {
@@ -195,5 +205,6 @@
     {
         public string? Title { get; set; }
         public bool IsCompleted { get; set; }
+        public int  OwnerId { get; set; }
     }
 }

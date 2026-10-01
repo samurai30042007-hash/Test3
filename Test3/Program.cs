@@ -1,27 +1,36 @@
+using Npgsql;
 using Test3;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddSingleton<Storage>();
+var str = builder.Configuration.GetConnectionString("ToDoDb");
+builder.Services.AddSingleton<NpgsqlDataSource>(_ => str is null ? throw new Exception (message: "Not find db config") : NpgsqlDataSource.Create(str));
+builder.Services.AddScoped<Storage>();
 builder.Services.AddScoped<LifeTimeProbe>();
 builder.Services.AddTransient<ReadProbe>();
 builder.Services.AddScoped<UniqueId>();
 builder.Services.AddScoped<Log>();
 builder.Services.AddScoped<Report>();
+//builder.Services.AddDbContext
 
 var app = builder.Build();
-var st = app.Services.GetRequiredService<Storage>();
-st.Add("Task 1", false);
-st.Add( "Task 2", false);
 
+app.Use(async (context, next) =>
+{
+    try // заготовка к логеру
+    {
+        await next();
+    }
+    catch (Exception)
+    {
 
-app.MapGet("/ToDo", (Storage storage) => { 
-
-    return storage.ToDos;
+        throw;
+    }
 });
 
-app.MapGet("/ToDo/{id}", (int id, Storage storage) =>
+
+app.MapGet("/ToDo/{id}", async (int id, Storage storage, CancellationToken cancellation) =>
 {
-    var task = storage.FindToDo(id);
+    var task = await storage.FindToDo(id, cancellation);
     if (task is null)
     {
         return Results.NotFound();
@@ -29,88 +38,76 @@ app.MapGet("/ToDo/{id}", (int id, Storage storage) =>
     return Results.Ok(task);
 });
 
-app.MapPost("/ToDo",(CreateTaskRequest request, Storage storage) =>
+app.MapPost("/ToDo",  async (CreateTaskRequest request, Storage storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
         return Results.BadRequest("Title cannot be empty.");
     }
-    int id = storage.Add(request.Title);
-    return Results.Created($"/ToDo/{id}", storage.FindToDo(id));
+    int? id = await storage.Add(request.Title, request.OwnerId, cancellation);
+    if (id is null)
+    {
+        return Results.BadRequest("Invalid owner id value");
+    }
+    return Results.Created($"/ToDo/{id}", await storage.FindToDo((int)id, cancellation)); 
 });
 
-app.MapPatch("/ToDo/{id}/Title", (int id, UpdateTitleTaskRequest request, Storage storage) =>
+app.MapPatch("/ToDo/{id}/Title", async (int id, UpdateTitleTaskRequest request, Storage storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
         return Results.BadRequest("Title cannot be empty.");
     }
-    try
+    if (!await storage.TryPatchTitle(id, request.Title, cancellation))
     {
-        storage.TryPatchTitle(id, request.Title);
+        return Results.BadRequest("Invalid id value");
     }
-    catch (ArgumentNullException)
-    {
-        return Results.BadRequest("Title cannot be empty.");
-    }
-    catch (ArgumentException)
-    {
-         return Results.NotFound();
-    }
-    return Results.Ok(storage.FindToDo(id));    
-
     
+    return Results.Ok(await storage.FindToDo(id, cancellation));
+
+
 });
 
-app.MapPatch("/ToDo/{id}/IsCompleted", (int id, UpdateIsCompletedTaskRequest request, Storage storage) =>
+app.MapPatch("/ToDo/{id}/IsCompleted", async (int id, UpdateIsCompletedTaskRequest request, Storage storage, CancellationToken cancellation) =>
 {
-    try
-    {
-        storage.PatchIsComplete(id, request.IsCompleted);
-    }
-    catch (ArgumentException)
-    {
-        return Results.NotFound();
-    }
-    return Results.Ok(storage.FindToDo(id));
     
+    if (!await storage.TryPatchIsComplete(id, request.IsCompleted, cancellation))
+    {
+        return Results.BadRequest("Invalid id value");
+    }
+    
+    
+    return Results.Ok(await storage.FindToDo(id, cancellation));
+
 
 });
 
-app.MapPut("/ToDo/{id}", (int id, UpdateTaskRequest request, Storage storage) =>
+app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, Storage storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
         return Results.BadRequest("Title cannot be empty.");
     }
-    try
+    if (!await storage.TryPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation))
     {
-        storage.TryPut(id, request.Title, request.IsCompleted);
+        return Results.BadRequest("Invalid id value");
     }
-    catch (ArgumentNullException)
-    {
-        return Results.BadRequest("Title cannot be empty.");
-    }
-    catch (ArgumentException)
-    {
-        return Results.NotFound();
-    }
-    return Results.Ok(storage.FindToDo(id));
+
+    return Results.Ok(await storage.FindToDo(id, cancellation));
 });
 
-app.MapDelete("/ToDo/{id}", (int id, Storage storage) =>
+app.MapDelete("/ToDo/{id}", async (int id, Storage storage, CancellationToken cancellation) =>
 {
-    var deleted = storage.TryDelete(id);
-    if (!deleted)
+    if (!await storage.TryDelete(id, cancellation))
     {
-        return Results.NotFound();
+        return Results.NotFound("Invalid id value");
     }
     return Results.NoContent();
 });
 
 app.MapGet("di-probe", (LifeTimeProbe first, LifeTimeProbe second) =>
 {
-    return new {First = first.Id, Second = second.Id};
+    return new { First = first.Id, Second = second.Id };
 });
 app.MapGet("di-constructor", (ReadProbe probe, LifeTimeProbe lifeProbe) =>
 {
