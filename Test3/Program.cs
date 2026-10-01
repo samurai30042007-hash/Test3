@@ -27,20 +27,21 @@ app.Use(async (context, next) =>
     }
 });
 
-app.MapGet("/ToDos", async(Storage storage, CancellationToken cancellation) =>
+app.MapGet("/ToDos", async(Storage storage, CancellationToken cancellation, int? ownerId) =>
 {
-    var tasks = await storage.ToDos(cancellation);
-    return Results.Ok(tasks);
-    
+    if (ownerId == null)
+    {
+        var tasks = await storage.ToDos(cancellation);
+        return Results.Ok(tasks);
+    }
+    else
+    {
+        var tasks = await storage.ToDos(cancellation, (int)ownerId);
+        return Results.Ok(tasks);
+    }
 
 });
-app.MapGet("/ToDos/{ownerId}", async (int ownerId, Storage storage, CancellationToken cancellation) =>
-{
-    var tasks = await storage.ToDos(cancellation, ownerId);
-    return Results.Ok(tasks);
 
-
-});
 
 app.MapGet("/ToDo/{id}", async (int id, Storage storage, CancellationToken cancellation) =>
 {
