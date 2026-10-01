@@ -83,13 +83,31 @@ namespace Test3
             _npgsqlDataSource = npgsqlDataSource;
         }
 
-        public async Task<List<ToDo>> ToDos(CancellationToken cancellation)
+        public async Task<List<ToDo>> ToDos(CancellationToken cancellation) //планировал делать через ofset
         {
             await using var connection = await _npgsqlDataSource.OpenConnectionAsync(cancellation);
             await using var command = new NpgsqlCommand("""
                 SELECT id, title, iscompleted, owner_id, created_at
                 FROM public.tasks
                 """, connection);
+            var reader = await command.ExecuteReaderAsync(cancellation);
+            List<ToDo> toDos = new();
+            while (await reader.ReadAsync(cancellation))
+            {
+                toDos.Add(readDbLine(reader));
+            }
+            return toDos;
+
+        }
+        public async Task<List<ToDo>> ToDos(CancellationToken cancellation, int ownerId) 
+        {
+            await using var connection = await _npgsqlDataSource.OpenConnectionAsync(cancellation);
+            await using var command = new NpgsqlCommand("""
+                SELECT id, title, iscompleted, owner_id, created_at
+                FROM public.tasks
+                WHERE owner_id = $1
+                """, connection);
+            command.Parameters.Add(new NpgsqlParameter { Value = ownerId });
             var reader = await command.ExecuteReaderAsync(cancellation);
             List<ToDo> toDos = new();
             while (await reader.ReadAsync(cancellation))
