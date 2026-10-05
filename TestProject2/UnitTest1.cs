@@ -9,6 +9,7 @@ public class StorageTests
     {
         string connectionString = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test DB is not configured.");
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
+        var ownerId = -1;
         try
         {
             await using var connection = await dataSource.OpenConnectionAsync();
@@ -27,26 +28,20 @@ public class StorageTests
             await using var connection2 = await dataSource.OpenConnectionAsync();
             await using var command2 = new NpgsqlCommand("""
             insert into public.users (name, email)
-            values ('Alex', 'alex@example.com'), 
-            ('Maria', 'maria@example.com'),
-            ('Ivan', 'ivan@example.com'),
-            ('Oleg', 'oleg@example.com')
+            values ('Alex', 'alex@example.com')
             returning id;
             """, connection2);
-            await using var result2 = await command2.ExecuteReaderAsync();
-            var ownerId = new List<int>();
-            while (await result2.ReadAsync())
-            {
-                ownerId.Add(result2.GetInt32(0));
-            }
+            var result2 = await command2.ExecuteScalarAsync();
+            Assert.NotNull(result2);
+            ownerId = (int)result2;
 
             Storage storage = new(dataSource);
-            int? id = await storage.Add("Insert task", ownerId[0], CancellationToken.None);
+            int? id = await storage.Add("Insert task", ownerId, CancellationToken.None);
             Assert.NotNull(id);
             var task = await storage.FindToDo((int)id, CancellationToken.None);
             Assert.NotNull(task);
             Assert.Equal(task.Title, "Insert task");
-            Assert.Equal(task.OwnerId, ownerId[0]);
+            Assert.Equal(task.OwnerId, ownerId);
             Assert.Equal(task.IsCompleted, false);
         }
         finally
@@ -54,7 +49,9 @@ public class StorageTests
             await using var connection3 = await dataSource.OpenConnectionAsync();
             await using var command3 = new NpgsqlCommand("""
             DELETE FROM public.users
+            WHERE id = $1
             """, connection3);
+            command3.Parameters.Add(new NpgsqlParameter { Value = ownerId });
             await command3.ExecuteNonQueryAsync();
 
         }
