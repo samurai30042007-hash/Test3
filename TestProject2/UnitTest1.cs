@@ -98,7 +98,7 @@ public class StorageTests
             Assert.Equal("Insert task", task.Title); // А надо проверять что записались значения или нет?
             Assert.Equal(ownerId, task.OwnerId);
             Assert.False(task.IsCompleted);
-            var mess = await storage.TryPut((int)id, "Updated task", true, ownerId - 1, CancellationToken.None);
+            var mess = await storage.TryPut((int)id, "Updated task", true, -1, CancellationToken.None);
             task = await storage.FindToDo((int)id, CancellationToken.None);
             Assert.Equal("Insert task", task.Title);
             Assert.Equal(ownerId, task.OwnerId);
