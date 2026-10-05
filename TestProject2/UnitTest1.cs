@@ -1,7 +1,7 @@
 ﻿using Npgsql;
 
 namespace Test3.Tests;
-
+// $env:TEST_DB_CONNECTION_STRING = 'Host=localhost;Port=5432;Database=todo_api_test;Username=postgres;Password=ТВОЙ_ПАРОЛЬ'
 public class StorageTests
 {
     [Fact]
@@ -59,6 +59,7 @@ public class StorageTests
 
         }
     }
+
     [Fact]
     public async Task PutTestStorage()
     {
@@ -83,7 +84,7 @@ public class StorageTests
             await using var connection2 = await dataSource.OpenConnectionAsync();
             await using var command2 = new NpgsqlCommand("""
             insert into public.users (name, email)
-            values ('Alex', 'alex@example.com'), 
+            values ('Alex12', 'alex@example12.com')
             returning id;
             """, connection2);
             var result2 = await command2.ExecuteScalarAsync();
@@ -98,15 +99,17 @@ public class StorageTests
             Assert.Equal(ownerId, task.OwnerId);
             Assert.False(task.IsCompleted);
             var mess = await storage.TryPut((int)id, "Updated task", true, ownerId - 1, CancellationToken.None);
+            task = await storage.FindToDo((int)id, CancellationToken.None);
             Assert.Equal("Insert task", task.Title);
             Assert.Equal(ownerId, task.OwnerId);
             Assert.False(task.IsCompleted);
             Assert.Equal(MessegStoreg.ForeignKeyViolation, mess);
             var mess1 = await storage.TryPut((int)id, "Updated task", true, ownerId , CancellationToken.None);
-            Assert.Equal("Updated task", task.Title);
-            Assert.Equal(ownerId, task.OwnerId);
-            Assert.True(task.IsCompleted);
-            Assert.Equal(MessegStoreg.Ok, mess);
+            var task1 = await storage.FindToDo((int)id, CancellationToken.None);
+            Assert.Equal("Updated task", task1.Title);
+            Assert.Equal(ownerId, task1.OwnerId);
+            Assert.True(task1.IsCompleted);
+            Assert.Equal(MessegStoreg.Ok, mess1);
 
         }
         finally
