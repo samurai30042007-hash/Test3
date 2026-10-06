@@ -10,11 +10,11 @@ builder.Services.AddTransient<ReadProbe>();
 builder.Services.AddScoped<UniqueId>();
 builder.Services.AddScoped<Log>();
 builder.Services.AddScoped<Report>();
-//builder.Services.AddProblemDetails();
+builder.Services.AddProblemDetails();
 //builder.Services.AddDbContext
 
 var app = builder.Build();
-//app.UseExceptionHandler();
+app.UseExceptionHandler();
 
 
 app.MapGet("/ToDos", async(Storage storage, CancellationToken cancellation, int? ownerId) =>

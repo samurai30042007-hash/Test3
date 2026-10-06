@@ -10,6 +10,7 @@ public class StorageTests
         string connectionString = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test DB is not configured.");
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
         var ownerId = -1;
+        string currentDb = "";
         try
         {
             await using var connection = await dataSource.OpenConnectionAsync();
@@ -25,6 +26,7 @@ public class StorageTests
             {
                 throw new InvalidOperationException("Unexpected database.");
             }
+            currentDb = (string)result;
             await using var connection2 = await dataSource.OpenConnectionAsync();
             await using var command2 = new NpgsqlCommand("""
             insert into public.users (name, email)
@@ -46,14 +48,16 @@ public class StorageTests
         }
         finally
         {
-            await using var connection3 = await dataSource.OpenConnectionAsync();
-            await using var command3 = new NpgsqlCommand("""
-            DELETE FROM public.users
-            WHERE id = $1
-            """, connection3);
-            command3.Parameters.Add(new NpgsqlParameter { Value = ownerId });
-            await command3.ExecuteNonQueryAsync();
-
+            if (currentDb == "todo_api_test")
+            {
+                await using var connection3 = await dataSource.OpenConnectionAsync();
+                await using var command3 = new NpgsqlCommand("""
+                DELETE FROM public.users
+                WHERE id = $1
+                """, connection3);
+                command3.Parameters.Add(new NpgsqlParameter { Value = ownerId });
+                await command3.ExecuteNonQueryAsync();
+            }
         }
     }
 
@@ -63,6 +67,7 @@ public class StorageTests
         string connectionString = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test DB is not configured.");
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
         int ownerId = -1;
+        string currentDb = "";
         try
         {
             await using var connection = await dataSource.OpenConnectionAsync();
@@ -78,6 +83,7 @@ public class StorageTests
             {
                 throw new InvalidOperationException("Unexpected database.");
             }
+            currentDb = (string)result;
             await using var connection2 = await dataSource.OpenConnectionAsync();
             await using var command2 = new NpgsqlCommand("""
             insert into public.users (name, email)
@@ -101,7 +107,7 @@ public class StorageTests
             Assert.Equal(ownerId, task.OwnerId);
             Assert.False(task.IsCompleted);
             Assert.Equal(MessegStoreg.ForeignKeyViolation, mess);
-            var mess1 = await storage.TryPut((int)id, "Updated task", true, ownerId , CancellationToken.None);
+            var mess1 = await storage.TryPut((int)id, "Updated task", true, ownerId, CancellationToken.None);
             var task1 = await storage.FindToDo((int)id, CancellationToken.None);
             Assert.Equal("Updated task", task1.Title);
             Assert.Equal(ownerId, task1.OwnerId);
@@ -111,13 +117,17 @@ public class StorageTests
         }
         finally
         {
-            await using var connection3 = await dataSource.OpenConnectionAsync();
-            await using var command3 = new NpgsqlCommand("""
-            DELETE FROM public.users
-            WHERE id = $1
-            """, connection3);
-            command3.Parameters.Add(new NpgsqlParameter {Value = ownerId });
-            await command3.ExecuteNonQueryAsync();
+            if (currentDb == "todo_api_test")
+            {
+                await using var connection3 = await dataSource.OpenConnectionAsync();
+                await using var command3 = new NpgsqlCommand("""
+                DELETE FROM public.users
+                WHERE id = $1
+                """, connection3);
+                command3.Parameters.Add(new NpgsqlParameter { Value = ownerId });
+                await command3.ExecuteNonQueryAsync();
+            }
+            
         }
     }
 }
