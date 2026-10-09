@@ -83,6 +83,35 @@ namespace Test3
             _npgsqlDataSource = npgsqlDataSource;
         }
 
+        public async Task<List<ToDo>> FindOpenTodos(int limits, int ownerId, CancellationToken cancellation) 
+        {
+            if (limits <= 0)
+            {
+                throw new ArgumentException("limits must be more than 0");
+            }
+            if (ownerId < 0)
+            {
+                throw new ArgumentException("ownerId must be not negativ");
+            }
+            await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
+            await using var command = new NpgsqlCommand("""
+                SELECT id, title, iscompleted,owner_id, created_at
+                FROM public.tasks
+                WHERE owner_id = $1 AND iscompleted = false
+                ORDER BY id DESC
+                LIMIT $2
+                """, connection);
+            command.Parameters.Add(new NpgsqlParameter{ Value = ownerId});
+            command.Parameters.Add(new NpgsqlParameter { Value = limits });
+            await using var reader = await command.ExecuteReaderAsync();
+            List<ToDo> ToDos = new(limits);
+            while (reader.Read())
+            {
+                ToDos.Add(readDbLine(reader));
+            }
+            return ToDos;
+        }
+
         public async Task<List<ToDo>> ToDos(CancellationToken cancellation) //планировал делать через ofset
         {
             await using var connection = await _npgsqlDataSource.OpenConnectionAsync(cancellation);

@@ -16,6 +16,28 @@ builder.Services.AddProblemDetails();
 var app = builder.Build();
 app.UseExceptionHandler();
 
+app.MapGet("/ToDos/open", async (Storage storage, CancellationToken cancellation, int? limit, int? ownerId) =>
+{
+    if (limit == null)
+    {
+        return Results.BadRequest();
+    }
+    if (ownerId == null)
+    {
+        return Results.BadRequest();
+
+    }
+    List<ToDo> ToDos;
+    try
+    {
+        ToDos = await storage.FindOpenTodos((int)limit, (int)ownerId, cancellation);
+    }
+    catch (ArgumentException)
+    {
+        return Results.BadRequest();
+    }
+    return Results.Ok(ToDos);
+});
 
 app.MapGet("/ToDos", async(Storage storage, CancellationToken cancellation, int? ownerId) =>
 {
@@ -72,6 +94,8 @@ app.MapPatch("/ToDo/{id}/Title", async (int id, UpdateTitleTaskRequest request, 
 
 
 });
+
+
 
 app.MapPatch("/ToDo/{id}/IsCompleted", async (int id, UpdateIsCompletedTaskRequest request, Storage storage, CancellationToken cancellation) =>
 {
