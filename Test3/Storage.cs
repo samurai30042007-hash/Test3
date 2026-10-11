@@ -89,11 +89,11 @@ namespace Test3
             {
                 throw new ArgumentException("limits must be more than 0");
             }
-            if (ownerId < 0)
+            if (ownerId <= 0)
             {
                 throw new ArgumentException("ownerId must be not negativ");
             }
-            await using var connection = await _npgsqlDataSource.OpenConnectionAsync();
+            await using var connection = await _npgsqlDataSource.OpenConnectionAsync(cancellation);
             await using var command = new NpgsqlCommand("""
                 SELECT id, title, iscompleted,owner_id, created_at
                 FROM public.tasks
@@ -103,9 +103,9 @@ namespace Test3
                 """, connection);
             command.Parameters.Add(new NpgsqlParameter{ Value = ownerId});
             command.Parameters.Add(new NpgsqlParameter { Value = limits });
-            await using var reader = await command.ExecuteReaderAsync();
+            await using var reader = await command.ExecuteReaderAsync(cancellation);
             List<ToDo> ToDos = new(limits);
-            while (reader.Read())
+            while (await reader.ReadAsync(cancellation))
             {
                 ToDos.Add(readDbLine(reader));
             }

@@ -216,7 +216,7 @@ public class StorageTests
 
         {
             await using var connection = await dataSource.OpenConnectionAsync();
-            var command = new NpgsqlCommand("""
+            await using var command = new NpgsqlCommand("""
                 SELECT current_database();
                 """, connection);
             var result = await command.ExecuteScalarAsync();
@@ -231,7 +231,7 @@ public class StorageTests
             string emailA = $"integration-{Guid.NewGuid()}@example.com";
             string emailB = $"integration-{Guid.NewGuid()}@example.com";
             await using var connection = await dataSource.OpenConnectionAsync();
-            var command = new NpgsqlCommand("""
+            await using var command = new NpgsqlCommand("""
                 INSERT INTO public.users (name, email)
                 VALUES ($1, $2), ($3, $4)
                 RETURNING id;
@@ -311,7 +311,11 @@ public class StorageTests
                 Assert.Equal(result[i].IsCompleted, openTodos[i].IsCompleted);
                 Assert.Equal(result[i].CreateAt, openTodos[i].CreateAt);
             }
+            bool isCompleted = await storage.TryPatchIsComplete((int)ids[4], true, CancellationToken.None);
+            Assert.True(isCompleted);
 
+            openTodos = await storage.FindOpenTodos(limit, ownerIds[1], CancellationToken.None);
+            Assert.Empty(openTodos);
         }
         finally
         {
