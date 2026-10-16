@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 var str = builder.Configuration.GetConnectionString("ToDoDb") ?? throw new Exception(message: "Not find db config");
 builder.Services.AddDbContext<ToDoEFContext>(options => options.UseNpgsql(str));
+builder.Services.AddSingleton<NpgsqlDataSource>(_ => NpgsqlDataSource.Create(str));
 builder.Services.AddScoped<Storage>();
 builder.Services.AddScoped<LifeTimeProbe>();
 builder.Services.AddTransient<ReadProbe>();
