@@ -25,38 +25,39 @@ public class StorageEF
             throw new ArgumentException("OwnerId must be greater than zero.", nameof(ownerId));
         }
         return await _context.ToDos.AsNoTracking()
-            .Where(t => t.OwnerId == ownerId && !t.IsCompleted)
-            .OrderBy(t => t.CreatedAt)
+            .Where(t => t.OwnerId == ownerId && !t.IsCompleted).
+            OrderByDescending(t => t.Id)
             .Take(limit)
             .ToListAsync(cancellation);
     }
-    public class ToDoEFContext : DbContext
+}
+public class ToDoEFContext : DbContext
+{
+    public ToDoEFContext(DbContextOptions<ToDoEFContext> options) : base(options)
     {
-        public ToDoEFContext(DbContextOptions<ToDoEFContext> options) : base(options)
-        {
-        }
-
-        public DbSet<ToDoEntity> ToDos => Set<ToDoEntity>();
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            var entity = modelBuilder.Entity<ToDoEntity>();
-            entity.ToTable("tasks", "public");
-            entity.HasKey(t => t.Id);
-            entity.Property(t => t.Id).HasColumnName("id");
-            entity.Property(t => t.Title).HasColumnName("title");
-            entity.Property(t => t.IsCompleted).HasColumnName("iscompleted");
-            entity.Property(t => t.OwnerId).HasColumnName("owner_id");
-            entity.Property(t => t.CreatedAt).HasColumnName("created_at");
-        }
     }
 
-
-    public class ToDoEntity
+    public DbSet<ToDoEntity> ToDos => Set<ToDoEntity>();
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        public int Id { get; set; }
-        public string Title { get; set; }
-        public bool IsCompleted { get; set; }
-        public int OwnerId { get; set; }
-        public DateTime CreatedAt { get; set; }
+        var entity = modelBuilder.Entity<ToDoEntity>();
+        entity.ToTable("tasks", "public");
+        entity.HasKey(t => t.Id);
+        entity.Property(t => t.Id).HasColumnName("id");
+        entity.Property(t => t.Title).HasColumnName("title");
+        entity.Property(t => t.IsCompleted).HasColumnName("iscompleted");
+        entity.Property(t => t.OwnerId).HasColumnName("owner_id");
+        entity.Property(t => t.CreatedAt).HasColumnName("created_at");
     }
 }
+
+
+public class ToDoEntity
+{
+    public int Id { get; set; }
+    public string Title { get; set; }
+    public bool IsCompleted { get; set; }
+    public int OwnerId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+

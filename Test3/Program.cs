@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Test3;
-using static Test3.StorageEF;
 
 var builder = WebApplication.CreateBuilder(args);
 var str = builder.Configuration.GetConnectionString("ToDoDb") ?? throw new Exception(message: "Not find db config");
