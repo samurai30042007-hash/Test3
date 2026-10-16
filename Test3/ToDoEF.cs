@@ -17,7 +17,7 @@ public class ToDoEFContext : DbContext
         entity.Property(t => t.Title).HasColumnName("title");
         entity.Property(t => t.IsCompleted).HasColumnName("iscompleted");
         entity.Property(t => t.OwnerId).HasColumnName("owner_id");
-        entity.Property(t => t.createdAt).HasColumnName("created_at");
+        entity.Property(t => t.CreatedAt).HasColumnName("created_at");
     }
 }
 
@@ -28,5 +28,5 @@ public class ToDoEntity
     public string? Title { get; set; }
     public bool IsCompleted { get; set; }
     public int OwnerId { get; set; }
-    public DateTime createdAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
