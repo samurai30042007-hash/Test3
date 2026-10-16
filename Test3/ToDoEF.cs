@@ -1,6 +1,22 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Collections.Specialized;
+using System.ComponentModel;
 namespace Test3;
 
+
+
+public class StorageEF
+{
+    private readonly ToDoEFContext _context;
+    public StorageEF(ToDoEFContext context)
+    {
+        _context = context;
+    }
+    public async Task<ToDoEntity?> EfTaskReader(int id, CancellationToken cancellation)
+    {
+        return await _context.ToDos.AsNoTracking().Where(t => t.Id == id).FirstOrDefaultAsync(cancellation);
+    }
+}
 public class ToDoEFContext : DbContext
 {
     public ToDoEFContext(DbContextOptions<ToDoEFContext> options) : base(options)
@@ -25,7 +41,7 @@ public class ToDoEFContext : DbContext
 public class ToDoEntity
 {
     public int Id { get; set; }
-    public string? Title { get; set; }
+    public string Title { get; set; }
     public bool IsCompleted { get; set; }
     public int OwnerId { get; set; }
     public DateTime CreatedAt { get; set; }

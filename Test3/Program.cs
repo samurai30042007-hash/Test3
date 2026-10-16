@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 var str = builder.Configuration.GetConnectionString("ToDoDb") ?? throw new Exception(message: "Not find db config");
 builder.Services.AddDbContext<ToDoEFContext>(options => options.UseNpgsql(str));
 builder.Services.AddSingleton<NpgsqlDataSource>(_ => NpgsqlDataSource.Create(str));
+builder.Services.AddScoped<StorageEF>();
 builder.Services.AddScoped<Storage>();
 builder.Services.AddScoped<LifeTimeProbe>();
 builder.Services.AddTransient<ReadProbe>();
@@ -18,6 +19,11 @@ builder.Services.AddProblemDetails();
 var app = builder.Build();
 app.UseExceptionHandler();
 
+app.MapGet("/ToDosEF/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
+{
+    var tasks = await storage.EfTaskReader(id, cancellation);
+    return Results.Ok(tasks);
+});
 app.MapGet("/ToDos/open", async (Storage storage, CancellationToken cancellation, int? limit, int? ownerId) =>
 {
     if (limit == null)
