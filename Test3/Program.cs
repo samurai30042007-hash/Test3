@@ -1,6 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Test3;
-using Microsoft.EntityFrameworkCore;
+using static Test3.StorageEF;
 
 var builder = WebApplication.CreateBuilder(args);
 var str = builder.Configuration.GetConnectionString("ToDoDb") ?? throw new Exception(message: "Not find db config");
@@ -22,7 +23,33 @@ app.UseExceptionHandler();
 app.MapGet("/ToDosEF/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
 {
     var tasks = await storage.EfTaskReader(id, cancellation);
+    if (tasks is null)
+    {
+        return Results.NotFound();
+    }
     return Results.Ok(tasks);
+});
+app.MapGet("/ToDosEF/open", async (StorageEF storage, CancellationToken cancellation, int? limit, int? ownerId) =>
+{
+    if (limit == null)
+    {
+        return Results.BadRequest();
+    }
+    if (ownerId == null)
+    {
+        return Results.BadRequest();
+
+    }
+    List<ToDoEntity> ToDos;
+    try
+    {
+        ToDos = await storage.FindOpenTodosEf((int)limit, (int)ownerId, cancellation);
+    }
+    catch (ArgumentException)
+    {
+        return Results.BadRequest();
+    }
+    return Results.Ok(ToDos);
 });
 app.MapGet("/ToDos/open", async (Storage storage, CancellationToken cancellation, int? limit, int? ownerId) =>
 {
