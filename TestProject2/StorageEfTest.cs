@@ -440,4 +440,22 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
             }
         }
     }
+    [Fact]
+    public async Task EfToDosFindByOwner_ThrowsArgumentException_WhenOwnerIdIsInvalid()
+    {
+        // Arrange
+        var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using var context = new ToDoEFContext(options);
+        StorageEF storage = new(context);
+        var dataSource = NpgsqlDataSource.Create(str);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+        {
+            await storage.EfToDosFindByOwner(CancellationToken.None, -1, null);
+        });
+    }
 }
