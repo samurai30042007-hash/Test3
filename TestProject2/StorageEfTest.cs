@@ -3,14 +3,13 @@ using Npgsql;
 using TestProject2.Helpers;
 namespace Test3.Tests;
 // C:\Program Files (x86)\R.G. Mechanics\Command and Conquer - Generals
-//var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
 public class StorageEfTest
 {
     [Fact]
     public async Task EfTaskReader_ReturnsTask()
     {
         // Arrange
-        var str = "Host=localhost;Port=5432;Database=todo_api_test;Username=postgres;Password=1";
+var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -58,7 +57,7 @@ public class StorageEfTest
     [Fact]
     public async Task FindOpenTodosEf_ReturnsOpenTasks()
     {
-        var str = "Host=localhost;Port=5432;Database=todo_api_test;Username=postgres;Password=1";
+var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -128,7 +127,7 @@ public class StorageEfTest
     public async Task EfTaskReader_ReturnsNull_WhenNoTasksFound()
     {
         // Arrange
-        var str = "Host=localhost;Port=5432;Database=todo_api_test;Username=postgres;Password=1";
+var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -143,7 +142,7 @@ public class StorageEfTest
     public async Task EfToDosFindByOwner_ReturnsTasks()
     {
         // Arrange
-        var str = "Host=localhost;Port=5432;Database=todo_api_test;Username=postgres;Password=1";
+var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -216,7 +215,7 @@ public class StorageEfTest
     public async Task EfToDosFindByOwner_ReturnsTasks_WhenTaskOpen()
     {
         // Arrange
-        var str = "Host=localhost;Port=5432;Database=todo_api_test;Username=postgres;Password=1";
+var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -297,7 +296,7 @@ public class StorageEfTest
     public async Task EfToDosFindByOwner_ReturnsTasks_WhenTaskClose()
     {
         // Arrange
-        var str = "Host=localhost;Port=5432;Database=todo_api_test;Username=postgres;Password=1";
+var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -367,7 +366,7 @@ public class StorageEfTest
     public async Task EfToDosFindByOwner_ReturnsTasks_WhenNone()
     {
         // Arrange
-        var str = "Host=localhost;Port=5432;Database=todo_api_test;Username=postgres;Password=1";
+var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
