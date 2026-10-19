@@ -4,7 +4,7 @@ using Npgsql;
 namespace Test3.Tests;
 
 // $env:TEST_DB_CONNECTION_STRING = 'Host=localhost;Port=5432;Database=todo_api_test;Username=postgres;Password=ТВОЙ_ПАРОЛЬ'
-/*
+
 public class StorageTests
 {
     [Fact]
@@ -334,4 +334,3 @@ public class StorageTests
    
 
 }
-*/
