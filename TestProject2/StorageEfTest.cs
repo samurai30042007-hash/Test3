@@ -208,7 +208,10 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
         }
         finally
         {
-            await TestDb.DeleteTestUserAsync(dataSource, uniqueId, 1);
+            for (int i = 0; i < 2; i++)
+            {
+                await TestDb.DeleteTestUserAsync(dataSource, uniqueId, i + 1);
+            }
         }
     }
     [Fact]
@@ -288,7 +291,10 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
         }
         finally
         {
-            await TestDb.DeleteTestUserAsync(dataSource, uniqueId, 1);
+            for (int i = 0; i < 2; i++)
+            {
+                await TestDb.DeleteTestUserAsync(dataSource, uniqueId, i + 1);
+            }
         }
     }
 
@@ -359,7 +365,10 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
         }
         finally
         {
-            await TestDb.DeleteTestUserAsync(dataSource, uniqueId, 1);
+            for (int i = 0; i < 2; i++)
+            {
+                await TestDb.DeleteTestUserAsync(dataSource, uniqueId, i + 1);
+            }
         }
     }
     [Fact]
@@ -425,7 +434,10 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
         }
         finally
         {
-            await TestDb.DeleteTestUserAsync(dataSource, uniqueId, 1);
+            for (int i = 0; i < 2; i++)
+            {
+                await TestDb.DeleteTestUserAsync(dataSource, uniqueId, i+1);
+            }
         }
     }
 }
