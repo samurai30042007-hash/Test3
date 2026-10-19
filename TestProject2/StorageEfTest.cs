@@ -88,7 +88,7 @@ public class StorageEfTest
         await using var dataSource = NpgsqlDataSource.Create(str);
         await TestDb.AssertTestDatabaseAsync(dataSource);
         Guid uniqueId = Guid.NewGuid();
-        int[] userId = new int[2];
+        var userId = new List<int>();
         try
         {
             {
@@ -103,11 +103,11 @@ public class StorageEfTest
             command.Parameters.Add(new NpgsqlParameter { Value = $"user{uniqueId}2Test2" });
             command.Parameters.Add(new NpgsqlParameter { Value = $"user{uniqueId}2@example.com" });
             await using var reader = await command.ExecuteReaderAsync();
-            int index = 0;
                 while (await reader.ReadAsync())
                 {
-                    userId[index++] = reader.GetInt32(0);
+                    userId.Add(reader.GetInt32(0));
                 }
+            Assert.Equal(2, userId.Count);
             }
 
             {
@@ -120,13 +120,13 @@ public class StorageEfTest
                 command.Parameters.Add(new NpgsqlParameter { Value = false });
                 command.Parameters.Add(new NpgsqlParameter { Value = userId[0] });
                 command.Parameters.Add(new NpgsqlParameter { Value = $"task{uniqueId}2" });
-                command.Parameters.Add(new NpgsqlParameter { Value = true });
+                command.Parameters.Add(new NpgsqlParameter { Value = false });
                 command.Parameters.Add(new NpgsqlParameter { Value = userId[0] });
                 command.Parameters.Add(new NpgsqlParameter { Value = $"task{uniqueId}3" });
                 command.Parameters.Add(new NpgsqlParameter { Value = false });
                 command.Parameters.Add(new NpgsqlParameter { Value = userId[0] });
                 command.Parameters.Add(new NpgsqlParameter { Value = $"task{uniqueId}4" });
-                command.Parameters.Add(new NpgsqlParameter { Value = false });
+                command.Parameters.Add(new NpgsqlParameter { Value = true });
                 command.Parameters.Add(new NpgsqlParameter { Value = userId[0] });
                 command.Parameters.Add(new NpgsqlParameter { Value = $"task{uniqueId}5" });
                 command.Parameters.Add(new NpgsqlParameter { Value = false });
@@ -139,8 +139,8 @@ public class StorageEfTest
                 var openTasks = await storage.FindOpenTodosEf(2, userId[0], CancellationToken.None);
                 // Assert
                 Assert.Equal(2, openTasks.Count());
-                Assert.Equal($"task{uniqueId}4", openTasks[0].Title);
-                Assert.Equal($"task{uniqueId}3", openTasks[1].Title);
+                Assert.Equal($"task{uniqueId}3", openTasks[0].Title);
+                Assert.Equal($"task{uniqueId}2", openTasks[1].Title);
                 Assert.All(openTasks, task => Assert.False(task.IsCompleted));
                 Assert.All(openTasks, task => Assert.Equal(userId[0], task.OwnerId));
             }
@@ -162,5 +162,20 @@ public class StorageEfTest
             }
         }
     }
+    [Fact]
+    public async Task EfTaskReader_ReturnsNull_WhenNoTasksFound()
+    {
+        // Arrange
+        var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using var context = new ToDoEFContext(options);
+        StorageEF storage = new(context);
 
+        // Act
+        var task = await storage.EfTaskReader(-1, CancellationToken.None); // По сути наше бд не может на данный момент иметь отрицательный id, но она может его иметь если будетпоставлен диапазон для вроде Primary Key. Незнаю правильно ли я сделал. Хотя мой ToDo запрещает отрицательные id. Поэтому вероятно ошибка в логике бд
+        // Assert
+        Assert.Null(task);
+    }
 }
