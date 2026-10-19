@@ -99,7 +99,7 @@ public class StorageEfTest
                 returning id;
                 """, connection);
             command.Parameters.Add(new NpgsqlParameter { Value = $"user{uniqueId}Test2" });
-            command.Parameters.Add(new NpgsqlParameter { Value = $"user{uniqueId}@example.com" });
+            command.Parameters.Add(new NpgsqlParameter { Value = $"user{uniqueId}1@example.com" });
             command.Parameters.Add(new NpgsqlParameter { Value = $"user{uniqueId}2Test2" });
             command.Parameters.Add(new NpgsqlParameter { Value = $"user{uniqueId}2@example.com" });
             await using var reader = await command.ExecuteReaderAsync();
@@ -114,7 +114,7 @@ public class StorageEfTest
                 await using var connection = await dataSource.OpenConnectionAsync();
                 await using var command = new NpgsqlCommand("""
                     INSERT INTO public.tasks (title, iscompleted, owner_id)
-                    VALUES ($1, $2, $3), ($4, $5, $6), ($7, $8, $9), ($10, $11, $12)
+                    VALUES ($1, $2, $3), ($4, $5, $6), ($7, $8, $9), ($10, $11, $12), ($13, $14, $15)
                     """, connection);
                 command.Parameters.Add(new NpgsqlParameter { Value = $"task{uniqueId}1" });
                 command.Parameters.Add(new NpgsqlParameter { Value = false });
@@ -127,6 +127,9 @@ public class StorageEfTest
                 command.Parameters.Add(new NpgsqlParameter { Value = userId[0] });
                 command.Parameters.Add(new NpgsqlParameter { Value = $"task{uniqueId}4" });
                 command.Parameters.Add(new NpgsqlParameter { Value = false });
+                command.Parameters.Add(new NpgsqlParameter { Value = userId[0] });
+                command.Parameters.Add(new NpgsqlParameter { Value = $"task{uniqueId}5" });
+                command.Parameters.Add(new NpgsqlParameter { Value = false });
                 command.Parameters.Add(new NpgsqlParameter { Value = userId[1] });
                 await command.ExecuteNonQueryAsync();
             }
@@ -135,10 +138,9 @@ public class StorageEfTest
                 // Act
                 var openTasks = await storage.FindOpenTodosEf(2, userId[0], CancellationToken.None);
                 // Assert
-                Assert.NotNull(openTasks);
                 Assert.Equal(2, openTasks.Count());
-                Assert.Equal(openTasks[0].Title, $"task{uniqueId}3");
-                Assert.Equal(openTasks[1].Title, $"task{uniqueId}1");
+                Assert.Equal($"task{uniqueId}4", openTasks[0].Title);
+                Assert.Equal($"task{uniqueId}3", openTasks[1].Title);
                 Assert.All(openTasks, task => Assert.False(task.IsCompleted));
                 Assert.All(openTasks, task => Assert.Equal(userId[0], task.OwnerId));
             }
@@ -148,14 +150,14 @@ public class StorageEfTest
         }
         finally
         {
-            foreach (var id in userId)
+            for (int i = 0; i < 2; i++)
             {
                 await using var connection = await dataSource.OpenConnectionAsync();
                 await using var command = new NpgsqlCommand("""
                     DELETE FROM public.users
-                    WHERE id = $1;
+                    WHERE email = $1;
                     """, connection);
-                command.Parameters.Add(new NpgsqlParameter { Value = id });
+                command.Parameters.Add(new NpgsqlParameter { Value = $"user{uniqueId}{i + 1}@example.com" });
                 await command.ExecuteNonQueryAsync();
             }
         }
