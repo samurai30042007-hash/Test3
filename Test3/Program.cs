@@ -21,12 +21,25 @@ app.UseExceptionHandler();
 
 app.MapGet("/ToDosEF/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
 {
-    var tasks = await storage.EfTaskReader(id, cancellation);
+    var tasks = await storage.EfTaskReader(id , cancellation);
     if (tasks is null)
     {
         return Results.NotFound();
     }
     return Results.Ok(tasks);
+});
+app.MapGet("/ToDosEF/OwnerId/{ownerId}", async (StorageEF storage, CancellationToken cancellation, int ownerId, bool? isCompleted) =>
+{
+    List<ToDoEntity> ToDos;
+    try
+    {
+        ToDos = await storage.EfToDosFindByOwner(cancellation, (int)ownerId, isCompleted);
+    }
+    catch (ArgumentException)
+    {
+        return Results.BadRequest();
+    }
+    return Results.Ok(ToDos);
 });
 app.MapGet("/ToDosEF/open", async (StorageEF storage, CancellationToken cancellation, int? limit, int? ownerId) =>
 {

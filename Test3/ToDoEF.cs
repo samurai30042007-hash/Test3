@@ -12,7 +12,18 @@ public class StorageEF
     }
     public async Task<ToDoEntity?> EfTaskReader(int id, CancellationToken cancellation)
     {
-        return await _context.ToDos.AsNoTracking().Where(t => t.Id == id).FirstOrDefaultAsync(cancellation);
+        return await _context.ToDos.AsNoTracking().Where(t => t.Id == id ).FirstOrDefaultAsync(cancellation);
+    }
+    public async Task<List<ToDoEntity>> EfToDosFindByOwner(CancellationToken cancellation, int ownerId, bool? isCompleted)
+    {
+        if (ownerId <= 0)
+        {
+            throw new ArgumentException("OwnerId must be greater than zero.", nameof(ownerId));
+        }
+        return await _context.ToDos.AsNoTracking()
+            .Where(t => t.OwnerId == ownerId && (isCompleted == null || t.IsCompleted == isCompleted))
+            .OrderBy(t => t.Id)
+            .ToListAsync(cancellation);
     }
     public async Task<List<ToDoEntity>> FindOpenTodosEf(int limit, int ownerId, CancellationToken cancellation)
     {
