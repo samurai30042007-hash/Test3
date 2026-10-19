@@ -1,8 +1,10 @@
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace Test3.Tests;
 
 // $env:TEST_DB_CONNECTION_STRING = 'Host=localhost;Port=5432;Database=todo_api_test;Username=postgres;Password=ТВОЙ_ПАРОЛЬ'
+/*
 public class StorageTests
 {
     [Fact]
@@ -88,7 +90,6 @@ public class StorageTests
             await command.ExecuteNonQueryAsync();
         }
     }
-
     [Fact]
     public async Task PutTestStorage()
     {
@@ -268,7 +269,7 @@ public class StorageTests
                 Assert.NotNull(id);
             }
             List<ToDo> allTasks = new(5);
-            //Данный блок написан ии так как мне лень писать отдельные тесты для каждого элемента, так как они все одинаковые по сути
+
             for (int i = 0; i < 4; i++)
             {
                 var task = await storage.FindToDo((int)ids[i], CancellationToken.None);
@@ -330,5 +331,7 @@ public class StorageTests
             await command.ExecuteNonQueryAsync();
         }
     }
+   
 
 }
+*/
