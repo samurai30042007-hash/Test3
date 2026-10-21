@@ -297,7 +297,6 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
             }
         }
     }
-
     [Fact]
     public async Task EfToDosFindByOwner_ReturnsTasks_WhenTaskClose()
     {
@@ -440,8 +439,11 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
             }
         }
     }
-    [Fact]
-    public async Task EfToDosFindByOwner_ThrowsArgumentException_WhenOwnerIdIsInvalid()
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    public async Task EfToDosFindByOwner_ThrowsArgumentException_WhenOwnerIdIsInvalid(int value)
     {
         // Arrange
         var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
@@ -450,12 +452,11 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
             .Options;
         await using var context = new ToDoEFContext(options);
         StorageEF storage = new(context);
-        var dataSource = NpgsqlDataSource.Create(str);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            await storage.EfToDosFindByOwner(CancellationToken.None, -1, null);
+            await storage.EfToDosFindByOwner(CancellationToken.None, value, null);
         });
     }
 }
