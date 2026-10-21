@@ -55,9 +55,8 @@ public class StorageEF
         {
             throw new Exception("Failed to create the task.");
         }
-        var task = await _context.ToDos.AsNoTracking().Where(t => t.Id == result).SingleOrDefaultAsync();
 
-        return task ?? throw new Exception("Failed to retrieve the created task.");
+        return Entity;
 
     }
 }
