@@ -18,6 +18,18 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 app.UseExceptionHandler();
+app.MapPost("/ToDosEF", async (CreateTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Title))
+    {
+        return Results.BadRequest("Title cannot be empty.");
+    }
+    if (request.OwnerId <= 0)
+    {
+        return Results.BadRequest("OwnerId must be greater than zero.");
+    }
+    return Results.Ok(await storage.EfTaskCreate(request.Title, request.OwnerId, false, cancellation));
+});
 
 app.MapGet("/ToDosEF/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
 {

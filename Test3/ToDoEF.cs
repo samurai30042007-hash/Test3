@@ -41,6 +41,25 @@ public class StorageEF
             .Take(limit)
             .ToListAsync(cancellation);
     }
+    public async Task<ToDoEntity> EfTaskCreate(string title, int ownerId, bool isCompleted, CancellationToken cancellation)
+    {
+        var Entity = new ToDoEntity
+        {
+            Title = title,
+            OwnerId = ownerId,
+            IsCompleted = isCompleted
+        };
+        _context.ToDos.Add(Entity);
+        int result = await _context.SaveChangesAsync(cancellation);
+        if (result <= 0)
+        {
+            throw new Exception("Failed to create the task.");
+        }
+        var task = await _context.ToDos.AsNoTracking().Where(t => t.Id == result).SingleOrDefaultAsync();
+
+        return task ?? throw new Exception("Failed to retrieve the created task.");
+
+    }
 }
 public class ToDoEFContext : DbContext
 {
@@ -58,7 +77,7 @@ public class ToDoEFContext : DbContext
         entity.Property(t => t.Title).HasColumnName("title");
         entity.Property(t => t.IsCompleted).HasColumnName("iscompleted");
         entity.Property(t => t.OwnerId).HasColumnName("owner_id");
-        entity.Property(t => t.CreatedAt).HasColumnName("created_at");
+        entity.Property(t => t.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
     }
 }
 
