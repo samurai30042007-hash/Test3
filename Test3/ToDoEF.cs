@@ -43,6 +43,14 @@ public class StorageEF
     }
     public async Task<ToDoEntity> EfTaskCreate(string title, int ownerId, bool isCompleted, CancellationToken cancellation)
     {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new ArgumentException("Wrong value. Title is null or whitespace");
+        }
+        else if (ownerId <= 0) 
+        {
+            throw new ArgumentException("Wrong value. OwnerId should be graeter than 0");
+        }
         var Entity = new ToDoEntity
         {
             Title = title,

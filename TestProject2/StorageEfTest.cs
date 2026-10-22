@@ -9,7 +9,7 @@ public class StorageEfTest
     public async Task EfTaskReader_ReturnsTask()
     {
         // Arrange
-var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -57,7 +57,7 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
     [Fact]
     public async Task FindOpenTodosEf_ReturnsOpenTasks()
     {
-var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -127,7 +127,7 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
     public async Task EfTaskReader_ReturnsNull_WhenNoTasksFound()
     {
         // Arrange
-var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -142,7 +142,7 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
     public async Task EfToDosFindByOwner_ReturnsTasks()
     {
         // Arrange
-var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -218,7 +218,7 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
     public async Task EfToDosFindByOwner_ReturnsTasks_WhenTaskOpen()
     {
         // Arrange
-var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -301,7 +301,7 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
     public async Task EfToDosFindByOwner_ReturnsTasks_WhenTaskClose()
     {
         // Arrange
-var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -374,7 +374,7 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
     public async Task EfToDosFindByOwner_ReturnsTasks_WhenNone()
     {
         // Arrange
-var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
@@ -435,11 +435,10 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
         {
             for (int i = 0; i < 2; i++)
             {
-                await TestDb.DeleteTestUserAsync(dataSource, uniqueId, i+1);
+                await TestDb.DeleteTestUserAsync(dataSource, uniqueId, i + 1);
             }
         }
     }
-
     [Theory]
     [InlineData(-1)]
     [InlineData(0)]
@@ -459,4 +458,82 @@ var str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? thr
             await storage.EfToDosFindByOwner(CancellationToken.None, value, null);
         });
     }
+    [Fact]
+    public async Task EfTaskCreate_ReturnsTask()
+    {
+
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(str);
+        await TestDb.AssertTestDatabaseAsync(dataSource);
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        ToDoEFContext context = new(options);
+        StorageEF storage = new(context);
+        int userId;
+        Guid unique = new();
+        try
+        {
+            var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
+            userId = (int)result;
+
+
+            var task = await storage.EfTaskCreate("Created task", userId, true, CancellationToken.None);
+            Assert.True(task.Id > 0);
+            Assert.NotEqual(DateTime.MinValue, task.CreatedAt);
+            Assert.Equal("Created task", task.Title);
+            Assert.Equal(userId, task.OwnerId);
+            Assert.True(task.IsCompleted);
+        }
+        finally
+        {
+            await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
+        }
+    }
+    [Fact]
+    public async Task EfTaskCreate_SaveTaskPostgres()
+    {
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(str);
+        await TestDb.AssertTestDatabaseAsync(dataSource);
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+
+        int userId;
+        Guid unique = new();
+        int taskId;
+        try
+        {
+            {
+                ToDoEFContext context = new(options);
+                StorageEF storage = new(context);
+                var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
+                userId = (int)result;
+
+
+                var task = await storage.EfTaskCreate("Created task", userId, true, CancellationToken.None);
+                Assert.True(task.Id > 0);
+                Assert.NotEqual(DateTime.MinValue, task.CreatedAt);
+                Assert.Equal("Created task", task.Title);
+                Assert.Equal(userId, task.OwnerId);
+                Assert.True(task.IsCompleted);
+                taskId = task.Id;
+            }
+            {
+                ToDoEFContext context = new(options);
+                var task = await context.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleOrDefaultAsync() ?? throw new ArgumentNullException("Cannot get task");
+                Assert.Equal(taskId, task.Id);
+                Assert.NotEqual(DateTime.MinValue, task.CreatedAt);
+                Assert.Equal("Created task", task.Title);
+                Assert.Equal(userId, task.OwnerId);
+                Assert.True(task.IsCompleted);
+            }
+        }
+        finally
+        {
+            await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
+        }
+    }
+
 }
