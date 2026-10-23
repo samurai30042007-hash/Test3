@@ -556,21 +556,43 @@ public class StorageEfTest
             userId = (int)result;
             var result1 = await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId, isCompleted) ?? throw new ArgumentNullException("Cannot create task");
             var taskId = (int)result1;
-            var isUpdated = await storage.EfTaskUpdateTitle(taskId, "Updated task title", CancellationToken.None);
+            var task = await storage.EfTaskReader(taskId, CancellationToken.None) ?? throw new ArgumentNullException("Cannot get task");
+            var isUpdated = await storage.EfTaskUpdateTitle(taskId, $"Updated task title{unique}", CancellationToken.None);
             if (!isUpdated)
             {
                 throw new InvalidOperationException("Failed to update task title.");
             }
             await using var newContext = new ToDoEFContext(options);
             var updatedTask = await newContext.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleOrDefaultAsync() ?? throw new ArgumentNullException("Cannot get task");
-            Assert.Equal("Updated task title", updatedTask.Title);
+            Assert.Equal($"Updated task title{unique}", updatedTask.Title);
             Assert.Equal(isCompleted, updatedTask.IsCompleted);
             Assert.Equal(userId, updatedTask.OwnerId);
+            Assert.Equal(task.CreatedAt, updatedTask.CreatedAt);
+            isUpdated = await storage.EfTaskUpdateTitle(taskId, $"Updated task title{unique}", CancellationToken.None);
+            updatedTask = await newContext.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleOrDefaultAsync() ?? throw new ArgumentNullException("Cannot get task");
+            Assert.True(isUpdated);
+            Assert.Equal($"Updated task title{unique}", updatedTask.Title);
+            Assert.Equal(isCompleted, updatedTask.IsCompleted);
+            Assert.Equal(userId, updatedTask.OwnerId);
+            Assert.Equal(task.CreatedAt, updatedTask.CreatedAt);
         }
         finally
         {
             await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
         }
+    }
+
+    [Fact]
+    public async Task EfTaskUpdateTitle_ReturnsFalse_WhenTaskNotFound()
+    {
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using ToDoEFContext context = new(options);
+        StorageEF storage = new(context);
+        var isUpdated = await storage.EfTaskUpdateTitle(-1, $"Updated task title{Guid.NewGuid()}", CancellationToken.None);
+        Assert.False(isUpdated);
     }
 } 
 
