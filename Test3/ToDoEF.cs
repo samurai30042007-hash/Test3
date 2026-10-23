@@ -73,7 +73,7 @@ public class StorageEF
         {
             throw new ArgumentException("Title cannot be null or whitespace.", nameof(title));
         }
-        var task = await _context.ToDos.Where(t => t.Id == id).SingleAsync(cancellation);
+        var task = await _context.ToDos.Where(t => t.Id == id).SingleOrDefaultAsync(cancellation);
         if (task is null)
         {
             return false;
