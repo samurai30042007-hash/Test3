@@ -12,7 +12,7 @@ public class StorageEF
     }
     public async Task<ToDoEntity?> EfTaskReader(int id, CancellationToken cancellation)
     {
-        return await _context.ToDos.AsNoTracking().Where(t => t.Id == id ).FirstOrDefaultAsync(cancellation);
+        return await _context.ToDos.AsNoTracking().Where(t => t.Id == id).FirstOrDefaultAsync(cancellation);
     }
     public async Task<List<ToDoEntity>> EfToDosFindByOwner(CancellationToken cancellation, int ownerId, bool? isCompleted)
     {
@@ -47,7 +47,7 @@ public class StorageEF
         {
             throw new ArgumentException("Wrong value. Title is null or whitespace");
         }
-        else if (ownerId <= 0) 
+        else if (ownerId <= 0)
         {
             throw new ArgumentException("Wrong value. OwnerId should be graeter than 0");
         }
@@ -66,6 +66,21 @@ public class StorageEF
 
         return Entity;
 
+    }
+    public async Task<bool> EfTaskUpdateTitle(int id, string title, CancellationToken cancellation)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new ArgumentException("Title cannot be null or whitespace.", nameof(title));
+        }
+        var task = await _context.ToDos.Where(t => t.Id == id).SingleAsync(cancellation);
+        if (task is null)
+        {
+            return false;
+        }
+        task.Title = title;
+        await _context.SaveChangesAsync(cancellation);
+        return true;
     }
 }
 public class ToDoEFContext : DbContext

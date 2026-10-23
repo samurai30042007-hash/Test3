@@ -18,6 +18,20 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 app.UseExceptionHandler();
+app.MapPatch("/ToDosEF/{id}/Title", async (int id, UpdateTitleTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Title))
+    {
+        return Results.BadRequest("Title cannot be empty.");
+    }
+    bool isUpadte = await storage.EfTaskUpdateTitle(id, request.Title, cancellation);
+    if (!isUpadte)
+    {
+        return Results.NotFound();
+    }
+    return Results.Ok();
+});
+
 app.MapPost("/ToDosEF", async (CreateTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
