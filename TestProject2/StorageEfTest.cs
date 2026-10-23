@@ -468,10 +468,10 @@ public class StorageEfTest
         var options = new DbContextOptionsBuilder<ToDoEFContext>()
             .UseNpgsql(str)
             .Options;
-        ToDoEFContext context = new(options);
+        await using ToDoEFContext context = new(options);
         StorageEF storage = new(context);
         int userId;
-        Guid unique = new();
+        Guid unique = Guid.NewGuid();
         try
         {
             var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
@@ -501,12 +501,12 @@ public class StorageEfTest
             .Options;
 
         int userId;
-        Guid unique = new();
+        Guid unique = Guid.NewGuid();
         int taskId;
         try
         {
             {
-                ToDoEFContext context = new(options);
+                await using ToDoEFContext context = new(options);
                 StorageEF storage = new(context);
                 var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
                 userId = (int)result;
@@ -521,7 +521,7 @@ public class StorageEfTest
                 taskId = task.Id;
             }
             {
-                ToDoEFContext context = new(options);
+                await using ToDoEFContext context = new(options);
                 var task = await context.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleOrDefaultAsync() ?? throw new ArgumentNullException("Cannot get task");
                 Assert.Equal(taskId, task.Id);
                 Assert.NotEqual(DateTime.MinValue, task.CreatedAt);
