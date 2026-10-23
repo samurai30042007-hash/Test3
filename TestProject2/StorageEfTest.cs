@@ -581,7 +581,6 @@ public class StorageEfTest
             await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
         }
     }
-
     [Fact]
     public async Task EfTaskUpdateTitle_ReturnsFalse_WhenTaskNotFound()
     {
