@@ -18,6 +18,16 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 app.UseExceptionHandler();
+
+app.MapDelete("/EF/ToDos/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
+{
+    bool isDeleted = await storage.EfTaskDelete(id, cancellation);
+    if (!isDeleted)
+    {
+        return Results.NotFound();
+    }
+    return Results.NoContent();
+});
 app.MapPatch("/ToDosEF/{id}/Title", async (int id, UpdateTitleTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))

@@ -593,5 +593,46 @@ public class StorageEfTest
         var isUpdated = await storage.EfTaskUpdateTitle(-1, $"Updated task title{Guid.NewGuid()}", CancellationToken.None);
         Assert.False(isUpdated);
     }
+    [Fact]
+    public async Task EfTaskDelete_DeletesTask()
+    {
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(str);
+        await TestDb.AssertTestDatabaseAsync(dataSource);
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using ToDoEFContext context = new(options);
+        StorageEF storage = new(context);
+        Guid unique = Guid.NewGuid();
+        int userId;
+        try
+        {
+            var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
+            userId = (int)result;
+            var result1 = await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId) ?? throw new ArgumentNullException("Cannot create task");
+            var taskId = (int)result1;
+            var isDeleted = await storage.EfTaskDelete(taskId, CancellationToken.None);
+            Assert.True(isDeleted);
+            var deletedTask = await context.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleOrDefaultAsync();
+            Assert.Null(deletedTask);
+        }
+        finally
+        {
+            await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
+        }
+    }
+    [Fact]
+    public async Task EfTaskDelete_ReturnsFalse_WhenTaskNotFound()
+    {
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using ToDoEFContext context = new(options);
+        StorageEF storage = new(context);
+        var isDeleted = await storage.EfTaskDelete(-1, CancellationToken.None);
+        Assert.False(isDeleted);
+    }
 } 
 

@@ -82,6 +82,17 @@ public class StorageEF
         await _context.SaveChangesAsync(cancellation);
         return true;
     }
+    public async Task<bool> EfTaskDelete(int id,CancellationToken cancellation)
+    {
+        var task = await _context.ToDos.Where(t => t.Id == id).SingleOrDefaultAsync(cancellation);
+        if (task is null)
+        {
+            return false;
+        }
+        _context.ToDos.Remove(task);
+        await _context.SaveChangesAsync(cancellation);
+        return true;
+    }
 }
 public class ToDoEFContext : DbContext
 {
