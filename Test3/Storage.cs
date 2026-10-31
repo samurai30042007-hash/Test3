@@ -8,14 +8,14 @@ namespace Test3
         private string _title;
         private bool _isCompleted;
         private int _ownerId;
-        private DateTime _createAt;
-        public ToDo(int id, string title, bool iscompleted, int ownerId, DateTime createAt)
+        private DateTime _createdAt;
+        public ToDo(int id, string title, bool iscompleted, int ownerId, DateTime createdAt)
         {
             Title = title;
             Id = id;
             IsCompleted = iscompleted;
             OwnerId = ownerId;
-            CreateAt = createAt;
+            CreatedAt = createdAt;
         }
 
         public int Id
@@ -60,17 +60,17 @@ namespace Test3
                 _ownerId = value;
             }
         }
-        public DateTime CreateAt
+        public DateTime CreatedAt
         {
-            get { return _createAt; }
+            get { return _createdAt; }
             private set
             {
-                _createAt = value;
+                _createdAt = value;
             }
         }
         public ToDo Copy()
         {
-            return new ToDo(_id, _title, _isCompleted, _ownerId, _createAt);
+            return new ToDo(_id, _title, _isCompleted, _ownerId, _createdAt);
         }
         
     }

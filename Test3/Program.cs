@@ -163,6 +163,10 @@ app.MapPost("/ToDo",  async (CreateTaskRequest request, StorageEF storage, Cance
         return Results.BadRequest("Title cannot be empty.");
     }
     var task = await storage.EfTaskCreate(request.Title, request.OwnerId, false, cancellation);
+    if (task is null)
+    {
+        return Results.BadRequest("Failed to create task. Invalid OwnerId or other issue.");
+    }
     return Results.Created($"/ToDo/{task.Id}", task); 
 });
 app.MapPatch("/ToDo/{id}/Title", async (int id, UpdateTitleTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
@@ -176,7 +180,7 @@ app.MapPatch("/ToDo/{id}/Title", async (int id, UpdateTitleTaskRequest request, 
         return Results.NotFound("Invalid id value");
     }
     
-    return Results.Ok(storage.EfTaskReader(id, cancellation));
+    return Results.Ok(await storage.EfTaskReader(id, cancellation));
 
 
 });

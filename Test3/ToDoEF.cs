@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Npgsql;
+using System.Reflection.Metadata.Ecma335;
 namespace Test3;
 
 
@@ -47,7 +48,7 @@ public class StorageEF
             .Take(limit)
             .ToListAsync(cancellation);
     }
-    public async Task<ToDoEntity> EfTaskCreate(string title, int ownerId, bool isCompleted, CancellationToken cancellation)
+    public async Task<ToDoEntity?> EfTaskCreate(string title, int ownerId, bool isCompleted, CancellationToken cancellation)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -64,7 +65,15 @@ public class StorageEF
             IsCompleted = isCompleted
         };
         _context.ToDos.Add(Entity);
-        int result = await _context.SaveChangesAsync(cancellation);
+        int result;
+        try
+        {
+            result = await _context.SaveChangesAsync(cancellation);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException exPg && exPg.SqlState == PostgresErrorCodes.ForeignKeyViolation)
+        {
+            return null;
+        }
         if (result <= 0)
         {
             throw new Exception("Failed to create the task.");
