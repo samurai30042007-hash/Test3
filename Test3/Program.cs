@@ -131,6 +131,10 @@ app.MapGet("/ToDos/open", async (StorageEF storage, CancellationToken cancellati
 });
 app.MapGet("/ToDos", async(StorageEF storage, CancellationToken cancellation, int? ownerId) =>
 {
+    if (ownerId <= 0)
+    {
+        return Results.Ok(new List<ToDoEntity>());
+    }
     if (ownerId == null)
     {
         var tasks = await storage.EfTaskReaderAll(cancellation);
@@ -190,6 +194,10 @@ app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, StorageEF sto
     if (string.IsNullOrWhiteSpace(request.Title))
     {
         return Results.BadRequest("Title cannot be empty.");
+    }
+    if (request.OwnerId <= 0)
+    {
+        return Results.BadRequest("OwnerId must be greater than zero.");
     }
     var result = await storage.EfTaskPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation);
     switch (result) // вообще я только понял что по хорошему нужно передавать request

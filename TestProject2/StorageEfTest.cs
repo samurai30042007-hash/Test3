@@ -594,6 +594,47 @@ public class StorageEfTest
         Assert.False(isUpdated);
     }
     [Fact]
+    public async Task EfTaskUpdateIsCompleted_UpdatesTask()
+    {
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(str);
+        await TestDb.AssertTestDatabaseAsync(dataSource);
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using ToDoEFContext context = new(options);
+        StorageEF storage = new(context);
+        Guid unique = Guid.NewGuid();
+        try
+        {
+            var userId = (int)(await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new InvalidOperationException("Cannot create user"));
+            var taskId = (int)(await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId) ?? throw new InvalidOperationException("Cannot create task"));
+            var originalTask = await context.ToDos.AsNoTracking().SingleAsync(t => t.Id == taskId);
+
+            Assert.True(await storage.EfTaskUpdateIsCompleted(taskId, true, CancellationToken.None));
+            await using (var updatedContext = new ToDoEFContext(options))
+            {
+                var updatedTask = await updatedContext.ToDos.AsNoTracking().SingleAsync(t => t.Id == taskId);
+                Assert.True(updatedTask.IsCompleted);
+                Assert.Equal(originalTask.Title, updatedTask.Title);
+                Assert.Equal(originalTask.OwnerId, updatedTask.OwnerId);
+                Assert.Equal(originalTask.CreatedAt, updatedTask.CreatedAt);
+            }
+
+            Assert.True(await storage.EfTaskUpdateIsCompleted(taskId, false, CancellationToken.None));
+            await using (var updatedContext = new ToDoEFContext(options))
+            {
+                var updatedTask = await updatedContext.ToDos.AsNoTracking().SingleAsync(t => t.Id == taskId);
+                Assert.False(updatedTask.IsCompleted);
+            }
+            Assert.False(await storage.EfTaskUpdateIsCompleted(-1, true, CancellationToken.None));
+        }
+        finally
+        {
+            await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
+        }
+    }
+    [Fact]
     public async Task EfTaskDelete_DeletesTask()
     {
         string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
@@ -647,16 +688,19 @@ public class StorageEfTest
         await using ToDoEFContext context = new(options);
         StorageEF storage = new(context);
         Guid unique = Guid.NewGuid();
-        int userId;
+        int userId1;
+        int userId2;
         try
         {
             var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
-            userId = (int)result;
-            var result1 = await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId) ?? throw new ArgumentNullException("Cannot create task");
+            userId1 = (int)result;
+            var res = await TestDb.CreateTestUserAsync(dataSource, unique, 2) ?? throw new ArgumentNullException("Cannot create user");
+            userId2 = (int)res;
+            var result1 = await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId1) ?? throw new ArgumentNullException("Cannot create task");
             var taskId = (int)result1;
             var task = await context.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleAsync() ?? throw new ArgumentNullException("Cannot get task");
 
-            var updateResult = await storage.EfTaskPut(taskId, $"Updated task title{unique}", true, userId, CancellationToken.None);
+            var updateResult = await storage.EfTaskPut(taskId, $"Updated task title{unique}", true, userId2, CancellationToken.None);
             Assert.Equal(MessegStoreg.Ok, updateResult);
             await using var newContext = new ToDoEFContext(options);
             var updatedTask = await newContext.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleAsync() ?? throw new ArgumentNullException("Cannot get task");
@@ -664,13 +708,17 @@ public class StorageEfTest
             Assert.Equal(taskId, updatedTask.Id);
             Assert.Equal($"Updated task title{unique}", updatedTask.Title);
             Assert.True(updatedTask.IsCompleted);
-            Assert.Equal(userId, updatedTask.OwnerId);
-            var updateResult2 = await storage.EfTaskPut(taskId, $"Updated task title{unique}", true, userId, CancellationToken.None);
+            Assert.Equal(userId2, updatedTask.OwnerId);
+            var updateResult2 = await storage.EfTaskPut(taskId, $"Updated task title{unique}", true, userId1, CancellationToken.None);
             Assert.Equal(MessegStoreg.Ok, updateResult2);
+            await using var restoredContext = new ToDoEFContext(options);
+            var restoredTask = await restoredContext.ToDos.AsNoTracking().SingleAsync(t => t.Id == taskId);
+            Assert.Equal(userId1, restoredTask.OwnerId);
         }
         finally
         {
             await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
+            await TestDb.DeleteTestUserAsync(dataSource, unique, 2);
         }
     }
     [Fact]
