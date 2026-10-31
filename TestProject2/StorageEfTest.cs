@@ -654,11 +654,13 @@ public class StorageEfTest
             userId = (int)result;
             var result1 = await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId) ?? throw new ArgumentNullException("Cannot create task");
             var taskId = (int)result1;
+            var task = await context.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleAsync() ?? throw new ArgumentNullException("Cannot get task");
+
             var updateResult = await storage.EfTaskPut(taskId, $"Updated task title{unique}", true, userId, CancellationToken.None);
             Assert.Equal(MessegStoreg.Ok, updateResult);
             await using var newContext = new ToDoEFContext(options);
             var updatedTask = await newContext.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleAsync() ?? throw new ArgumentNullException("Cannot get task");
-            Assert.Equal(updatedTask.CreatedAt, updatedTask.CreatedAt);
+            Assert.Equal(task.CreatedAt, updatedTask.CreatedAt);
             Assert.Equal(taskId, updatedTask.Id);
             Assert.Equal($"Updated task title{unique}", updatedTask.Title);
             Assert.True(updatedTask.IsCompleted);
@@ -672,7 +674,7 @@ public class StorageEfTest
         }
     }
     [Fact]
-    public async Task EfTaskPut_ReturnsForeignKeyViolation_WhenTaskNotFound()
+    public async Task EfTaskPut_ReturnsForeignKeyViolation()
     {
         string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
         await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(str);
@@ -688,7 +690,8 @@ public class StorageEfTest
         {
             var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
             userId = (int)result;
-            var task = await storage.EfTaskCreate("Created task", userId, true, CancellationToken.None);
+            var Id = await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId) ?? throw new ArgumentNullException("Cannot create task");
+            var task = await context.ToDos.AsNoTracking().Where(t => t.Id == (int)Id).SingleAsync() ?? throw new ArgumentNullException("Cannot get task");
 
             result = await TestDb.CreateTestUserAsync(dataSource, unique, 2) ?? throw new ArgumentNullException("Cannot delete user");
             userId = (int)result;
@@ -696,6 +699,13 @@ public class StorageEfTest
 
             var res = await storage.EfTaskPut(task.Id, $"Updated task title{unique}", true, userId, CancellationToken.None);
             Assert.Equal(MessegStoreg.ForeignKeyViolation, res);
+            var updatedTask = await context.ToDos.AsNoTracking().Where(t => t.Id == task.Id).SingleOrDefaultAsync();
+            Assert.NotNull(updatedTask);
+            Assert.Equal(task.Title, updatedTask.Title);
+            Assert.Equal(task.IsCompleted, updatedTask.IsCompleted);
+            Assert.Equal(task.OwnerId, updatedTask.OwnerId);
+            Assert.Equal(task.CreatedAt, updatedTask.CreatedAt);
+            Assert.Equal(task.Id, updatedTask.Id);
         }
         finally
         {
