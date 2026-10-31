@@ -19,7 +19,19 @@ builder.Services.AddProblemDetails();
 var app = builder.Build();
 app.UseExceptionHandler();
 
-app.MapDelete("/EF/ToDos/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
+app.MapPut("/EfToDos/{id}", async (int id, UpdateTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
+{
+    var result = await storage.EfTaskPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation);
+    return result switch
+    {
+        MessegStoreg.Ok => Results.Ok(),
+        MessegStoreg.NotFound => Results.NotFound(),
+        MessegStoreg.ForeignKeyViolation => Results.BadRequest("Foreign key violation."),
+        _ => Results.Problem("An error occurred while updating the task.") // Что это делает?
+    };
+});
+
+app.MapDelete("/EFToDos/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
 {
     bool isDeleted = await storage.EfTaskDelete(id, cancellation);
     if (!isDeleted)
