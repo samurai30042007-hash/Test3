@@ -8,10 +8,6 @@ builder.Services.AddDbContext<ToDoEFContext>(options => options.UseNpgsql(str));
 builder.Services.AddSingleton<NpgsqlDataSource>(_ => NpgsqlDataSource.Create(str));
 builder.Services.AddScoped<StorageEF>();
 builder.Services.AddScoped<Storage>();
-builder.Services.AddScoped<LifeTimeProbe>();
-builder.Services.AddTransient<ReadProbe>();
-builder.Services.AddScoped<UniqueId>();
-builder.Services.AddScoped<Log>();
 builder.Services.AddScoped<Report>();
 builder.Services.AddProblemDetails();
 //builder.Services.AddDbContext
@@ -30,7 +26,6 @@ app.MapPut("/EfToDos/{id}", async (int id, UpdateTaskRequest request, StorageEF 
         _ => Results.Problem("An error occurred while updating the task.") // Что это делает?
     };
 });
-
 app.MapDelete("/EFToDos/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
 {
     bool isDeleted = await storage.EfTaskDelete(id, cancellation);
@@ -53,7 +48,6 @@ app.MapPatch("/ToDosEF/{id}/Title", async (int id, UpdateTitleTaskRequest reques
     }
     return Results.Ok();
 });
-
 app.MapPost("/ToDosEF", async (CreateTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
@@ -66,7 +60,6 @@ app.MapPost("/ToDosEF", async (CreateTaskRequest request, StorageEF storage, Can
     }
     return Results.Ok(await storage.EfTaskCreate(request.Title, request.OwnerId, false, cancellation));
 });
-
 app.MapGet("/ToDosEF/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
 {
     var tasks = await storage.EfTaskReader(id , cancellation);
@@ -111,7 +104,10 @@ app.MapGet("/ToDosEF/open", async (StorageEF storage, CancellationToken cancella
     }
     return Results.Ok(ToDos);
 });
-app.MapGet("/ToDos/open", async (Storage storage, CancellationToken cancellation, int? limit, int? ownerId) =>
+
+
+
+app.MapGet("/ToDos/open", async (StorageEF storage, CancellationToken cancellation, int? limit, int? ownerId) =>
 {
     if (limit == null)
     {
@@ -122,10 +118,10 @@ app.MapGet("/ToDos/open", async (Storage storage, CancellationToken cancellation
         return Results.BadRequest();
 
     }
-    List<ToDo> ToDos;
+    List<ToDoEntity> ToDos;
     try
     {
-        ToDos = await storage.FindOpenTodos((int)limit, (int)ownerId, cancellation);
+        ToDos = await storage.FindOpenTodosEf((int)limit, (int)ownerId, cancellation);
     }
     catch (ArgumentException)
     {
@@ -133,91 +129,74 @@ app.MapGet("/ToDos/open", async (Storage storage, CancellationToken cancellation
     }
     return Results.Ok(ToDos);
 });
-
-app.MapGet("/ToDos", async(Storage storage, CancellationToken cancellation, int? ownerId) =>
+app.MapGet("/ToDos", async(StorageEF storage, CancellationToken cancellation, int? ownerId) =>
 {
     if (ownerId == null)
     {
-        var tasks = await storage.ToDos(cancellation);
+        var tasks = await storage.EfTaskReaderAll(cancellation);
         return Results.Ok(tasks);
     }
     else
     {
-        var tasks = await storage.ToDos(cancellation, (int)ownerId);
+        var tasks = await storage.EfToDosFindByOwner(cancellation, (int)ownerId, null);
         return Results.Ok(tasks);
     }
 
 });
-
-
-app.MapGet("/ToDo/{id}", async (int id, Storage storage, CancellationToken cancellation) =>
+app.MapGet("/ToDo/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
 {
-    var task = await storage.FindToDo(id, cancellation);
+    var task = await storage.EfTaskReader(id, cancellation);
     if (task is null)
     {
         return Results.NotFound();
     }
     return Results.Ok(task);
 });
-
-app.MapPost("/ToDo",  async (CreateTaskRequest request, Storage storage, CancellationToken cancellation) =>
+app.MapPost("/ToDo",  async (CreateTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
         return Results.BadRequest("Title cannot be empty.");
     }
-    int? id = await storage.Add(request.Title, request.OwnerId, cancellation);
-    if (id is null)
-    {
-        return Results.BadRequest("Invalid owner id value");
-    }
-    return Results.Created($"/ToDo/{id}", await storage.FindToDo((int)id, cancellation)); 
+    var task = await storage.EfTaskCreate(request.Title, request.OwnerId, false, cancellation);
+    return Results.Created($"/ToDo/{task.Id}", task); 
 });
-
-app.MapPatch("/ToDo/{id}/Title", async (int id, UpdateTitleTaskRequest request, Storage storage, CancellationToken cancellation) =>
+app.MapPatch("/ToDo/{id}/Title", async (int id, UpdateTitleTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
         return Results.BadRequest("Title cannot be empty.");
     }
-    if (!await storage.TryPatchTitle(id, request.Title, cancellation))
+    if (!await storage.EfTaskUpdateTitle(id, request.Title, cancellation))
     {
         return Results.NotFound("Invalid id value");
     }
     
-    return Results.Ok(await storage.FindToDo(id, cancellation));
+    return Results.Ok(storage.EfTaskReader(id, cancellation));
 
 
 });
-
-
-
-app.MapPatch("/ToDo/{id}/IsCompleted", async (int id, UpdateIsCompletedTaskRequest request, Storage storage, CancellationToken cancellation) =>
+app.MapPatch("/ToDo/{id}/IsCompleted", async (int id, UpdateIsCompletedTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
 {
-    
-    if (!await storage.TryPatchIsComplete(id, request.IsCompleted, cancellation))
+
+    if (!await storage.EfTaskUpdateIsCompleted(id, request.IsCompleted, cancellation))
     {
         return Results.NotFound("Invalid id value");
     }
-    
-    
-    return Results.Ok(await storage.FindToDo(id, cancellation));
-
-
+    return Results.Ok(await storage.EfTaskReader(id, cancellation));
 });
-
-app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, Storage storage, CancellationToken cancellation) =>
+app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
         return Results.BadRequest("Title cannot be empty.");
     }
-    var result = await storage.TryPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation);
+    var result = await storage.EfTaskPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation);
     switch (result) // вообще я только понял что по хорошему нужно передавать request
     {
         case MessegStoreg.Ok:
         {
-                return Results.Ok(await storage.FindToDo(id, cancellation));
+                return Results.Ok(await storage.EfTaskReader(id, cancellation));
         }
         case MessegStoreg.ForeignKeyViolation:
         {
@@ -231,27 +210,13 @@ app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, Storage stora
                 throw new ArgumentException("Invalid MessegStoreg value");
     }
 });
-
-app.MapDelete("/ToDo/{id}", async (int id, Storage storage, CancellationToken cancellation) =>
+app.MapDelete("/ToDo/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
 {
-    if (!await storage.TryDelete(id, cancellation))
+    if (!await storage.EfTaskDelete(id, cancellation))
     {
         return Results.NotFound("Invalid id value");
     }
     return Results.NoContent();
-});
-
-app.MapGet("di-probe", (LifeTimeProbe first, LifeTimeProbe second) =>
-{
-    return new { First = first.Id, Second = second.Id };
-});
-app.MapGet("di-constructor", (ReadProbe probe, LifeTimeProbe lifeProbe) =>
-{
-    return new { Probe = probe.Read(), LifeProbe = lifeProbe.Id };
-});
-app.MapGet("Test", (UniqueId uniqueId, Log log, Report report) =>
-{
-    return new { LogMessage = log.LogMessage(), ReportMessage = report.ReportMessage() };
 });
 
 app.Run();

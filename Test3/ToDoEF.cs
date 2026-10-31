@@ -16,6 +16,10 @@ public class StorageEF
     {
         return await _context.ToDos.AsNoTracking().Where(t => t.Id == id).FirstOrDefaultAsync(cancellation);
     }
+    public async Task<List<ToDoEntity>> EfTaskReaderAll(CancellationToken cancellation)
+    {
+        return await _context.ToDos.AsNoTracking().OrderBy(t => t.Id).ToListAsync(cancellation);
+    }
     public async Task<List<ToDoEntity>> EfToDosFindByOwner(CancellationToken cancellation, int ownerId, bool? isCompleted)
     {
         if (ownerId <= 0)
@@ -84,6 +88,17 @@ public class StorageEF
         await _context.SaveChangesAsync(cancellation);
         return true;
     }
+    public async Task<bool> EfTaskUpdateIsCompleted(int id, bool isCompleted, CancellationToken cancellation)
+    {
+        var task = await _context.ToDos.Where(t => t.Id == id).SingleOrDefaultAsync(cancellation);
+        if (task is null)
+        {
+            return false;
+        }
+        task.IsCompleted = isCompleted;
+        await _context.SaveChangesAsync(cancellation);
+        return true;
+    }
     public async Task<bool> EfTaskDelete(int id,CancellationToken cancellation)
     {
         var task = await _context.ToDos.Where(t => t.Id == id).SingleOrDefaultAsync(cancellation);
@@ -99,11 +114,7 @@ public class StorageEF
     {
         try
         {
-            var task = await _context.ToDos.Where(t => t.Id == id).SingleOrDefaultAsync(cancellation);
-            if (task is null)
-            {
-                return MessegStoreg.NotFound;
-            }
+            
             if (string.IsNullOrWhiteSpace(title))
             {
                 throw new ArgumentException("Title cannot be null or whitespace.", nameof(title));
@@ -111,6 +122,11 @@ public class StorageEF
             if (ownerId <= 0)
             {
                 throw new ArgumentException("OwnerId cannot be less than or equal to 0.", nameof(ownerId));
+            }
+            var task = await _context.ToDos.Where(t => t.Id == id).SingleOrDefaultAsync(cancellation);
+            if (task is null)
+            {
+                return MessegStoreg.NotFound;
             }
             task.Title = title;
             task.IsCompleted = isCompleted;
