@@ -708,8 +708,8 @@ public class StorageEfTest
             Assert.Equal(taskId, updatedTask.Id);
             Assert.Equal($"Updated task title{unique}", updatedTask.Title);
             Assert.True(updatedTask.IsCompleted);
-            Assert.Equal(userId1, updatedTask.OwnerId);
-            var updateResult2 = await storage.EfTaskPut(taskId, $"Updated task title{unique}", true, userId1, CancellationToken.None);
+            Assert.Equal(userId2, updatedTask.OwnerId);
+            var updateResult2 = await storage.EfTaskPut(taskId, $"Updated task title{unique}", true, userId2, CancellationToken.None);
             Assert.Equal(MessegStoreg.Ok, updateResult2);
         }
         finally

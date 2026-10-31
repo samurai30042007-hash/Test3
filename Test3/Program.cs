@@ -162,7 +162,15 @@ app.MapPost("/ToDo",  async (CreateTaskRequest request, StorageEF storage, Cance
     {
         return Results.BadRequest("Title cannot be empty.");
     }
-    var task = await storage.EfTaskCreate(request.Title, request.OwnerId, false, cancellation);
+    ToDoEntity? task;
+    try
+    {
+        task = await storage.EfTaskCreate(request.Title, request.OwnerId, false, cancellation);
+    }
+    catch(ArgumentException)
+    {
+        task = null;
+    }
     if (task is null)
     {
         return Results.BadRequest("Failed to create task. Invalid OwnerId or other issue.");

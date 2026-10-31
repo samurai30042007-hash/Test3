@@ -310,7 +310,7 @@ public class StorageTests
                 Assert.Equal(result[i].Id, openTodos[i].Id);
                 Assert.Equal(result[i].OwnerId, openTodos[i].OwnerId);
                 Assert.Equal(result[i].IsCompleted, openTodos[i].IsCompleted);
-                Assert.Equal(result[i].CreateAt, openTodos[i].CreateAt);
+                Assert.Equal(result[i].CreatedAt, openTodos[i].CreatedAt);
             }
             bool isCompleted = await storage.TryPatchIsComplete((int)ids[4], true, CancellationToken.None);
             Assert.True(isCompleted);
