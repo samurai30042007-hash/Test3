@@ -614,7 +614,8 @@ public class StorageEfTest
             var taskId = (int)result1;
             var isDeleted = await storage.EfTaskDelete(taskId, CancellationToken.None);
             Assert.True(isDeleted);
-            var deletedTask = await context.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleOrDefaultAsync();
+            await using var newContext = new ToDoEFContext(options);
+            var deletedTask = await newContext.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleOrDefaultAsync();
             Assert.Null(deletedTask);
         }
         finally
@@ -633,6 +634,166 @@ public class StorageEfTest
         StorageEF storage = new(context);
         var isDeleted = await storage.EfTaskDelete(-1, CancellationToken.None);
         Assert.False(isDeleted);
+    }
+    [Fact]
+    public async Task EfTaskPut_UpdatesTask()
+    {
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(str);
+        await TestDb.AssertTestDatabaseAsync(dataSource);
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using ToDoEFContext context = new(options);
+        StorageEF storage = new(context);
+        Guid unique = Guid.NewGuid();
+        int userId;
+        try
+        {
+            var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
+            userId = (int)result;
+            var result1 = await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId) ?? throw new ArgumentNullException("Cannot create task");
+            var taskId = (int)result1;
+            var updateResult = await storage.EfTaskPut(taskId, $"Updated task title{unique}", true, userId, CancellationToken.None);
+            Assert.Equal(MessegStoreg.Ok, updateResult);
+            await using var newContext = new ToDoEFContext(options);
+            var updatedTask = await newContext.ToDos.AsNoTracking().Where(t => t.Id == taskId).SingleAsync() ?? throw new ArgumentNullException("Cannot get task");
+            Assert.Equal(updatedTask.CreatedAt, updatedTask.CreatedAt);
+            Assert.Equal(taskId, updatedTask.Id);
+            Assert.Equal($"Updated task title{unique}", updatedTask.Title);
+            Assert.True(updatedTask.IsCompleted);
+            Assert.Equal(userId, updatedTask.OwnerId);
+            var updateResult2 = await storage.EfTaskPut(taskId, $"Updated task title{unique}", true, userId, CancellationToken.None);
+            Assert.Equal(MessegStoreg.Ok, updateResult2);
+        }
+        finally
+        {
+            await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
+        }
+    }
+    [Fact]
+    public async Task EfTaskPut_ReturnsForeignKeyViolation_WhenTaskNotFound()
+    {
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(str);
+        await TestDb.AssertTestDatabaseAsync(dataSource);
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using ToDoEFContext context = new(options);
+        StorageEF storage = new(context);
+        Guid unique = Guid.NewGuid();
+        int userId;
+        try
+        {
+            var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
+            userId = (int)result;
+            var task = await storage.EfTaskCreate("Created task", userId, true, CancellationToken.None);
+
+            result = await TestDb.CreateTestUserAsync(dataSource, unique, 2) ?? throw new ArgumentNullException("Cannot delete user");
+            userId = (int)result;
+            await TestDb.DeleteTestUserAsync(dataSource, unique, 2);
+
+            var res = await storage.EfTaskPut(task.Id, $"Updated task title{unique}", true, userId, CancellationToken.None);
+            Assert.Equal(MessegStoreg.ForeignKeyViolation, res);
+        }
+        finally
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                await TestDb.DeleteTestUserAsync(dataSource, unique, i + 1);
+
+            }
+        }
+
+    }
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    public async Task EfTaskPut_ReturnsArgumentException_WhenOwnerIdIsInvalid(int value)
+    {
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(str);
+        await TestDb.AssertTestDatabaseAsync(dataSource);
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using ToDoEFContext context = new(options);
+        StorageEF storage = new(context);
+        Guid unique = Guid.NewGuid();
+        int userId;
+        try
+        {
+            var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
+            userId = (int)result;
+            var result1 = await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId) ?? throw new ArgumentNullException("Cannot create task");
+            var taskId = (int)result1;
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
+            {
+                await storage.EfTaskPut(taskId, $"Updated task title{unique}", true, value, CancellationToken.None);
+            });
+        }
+        finally
+        {
+            await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
+        }
+    }
+    [Fact]
+    public async Task EfTaskPut_ReturnsNotFound_WhenTaskNotFound()
+    {
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(str);
+        await TestDb.AssertTestDatabaseAsync(dataSource);
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using ToDoEFContext context = new(options);
+        StorageEF storage = new(context);
+        Guid unique = Guid.NewGuid();
+        int userId;
+        try
+        {
+            var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
+            userId = (int)result;
+            var res = await storage.EfTaskPut(-1, $"Updated task title{unique}", true, userId, CancellationToken.None);
+            Assert.Equal(MessegStoreg.NotFound, res);
+        }
+        finally
+        {
+            await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
+        }
+    }
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public async Task EfTaskPut_ReturnsArgumentException_WhenTitleIsInvalid(string? title)
+    {
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(str);
+        await TestDb.AssertTestDatabaseAsync(dataSource);
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using ToDoEFContext context = new(options);
+        StorageEF storage = new(context);
+        Guid unique = Guid.NewGuid();
+        int userId;
+        try
+        {
+            var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
+            userId = (int)result;
+            var result1 = await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId) ?? throw new ArgumentNullException("Cannot create task");
+            var taskId = (int)result1;
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
+            {
+                await storage.EfTaskPut(taskId, title, true, userId, CancellationToken.None);
+            });
+        }
+        finally
+        {
+            await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
+        }
     }
 } 
 

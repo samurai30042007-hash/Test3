@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using Npgsql;
 namespace Test3;
 
 
@@ -92,6 +94,38 @@ public class StorageEF
         _context.ToDos.Remove(task);
         await _context.SaveChangesAsync(cancellation);
         return true;
+    }
+    public async Task<MessegStoreg> EfTaskPut(int id, string? title, bool isCompleted, int ownerId, CancellationToken cancellation)
+    {
+        try
+        {
+            var task = await _context.ToDos.Where(t => t.Id == id).SingleOrDefaultAsync(cancellation);
+            if (task is null)
+            {
+                return MessegStoreg.NotFound;
+            }
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                throw new ArgumentException("Title cannot be null or whitespace.", nameof(title));
+            }
+            if (ownerId <= 0)
+            {
+                throw new ArgumentException("OwnerId cannot be less than or equal to 0.", nameof(ownerId));
+            }
+            task.Title = title;
+            task.IsCompleted = isCompleted;
+            task.OwnerId = ownerId;
+            await _context.SaveChangesAsync(cancellation);
+            return MessegStoreg.Ok;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException exPg && exPg.SqlState == PostgresErrorCodes.ForeignKeyViolation)
+        {
+            return MessegStoreg.ForeignKeyViolation;
+        }
+        catch
+        {
+            throw;
+        }
     }
 }
 public class ToDoEFContext : DbContext
