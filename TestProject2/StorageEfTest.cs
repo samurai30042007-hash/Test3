@@ -866,22 +866,53 @@ public class StorageEfTest
         try
         {
             var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
+            var res2 = await TestDb.CreateTestUserAsync(dataSource, unique, 2) ?? throw new ArgumentNullException("Cannot create user");
             userId = (int)result;
             var taskIds = new List<int>();
             for (int i = 0; i < 3; i++)
             {
-                var result2 = await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId) ?? throw new ArgumentNullException("Cannot create task");
+                var result2 = await TestDb.CreateTestToDoAsync(dataSource, unique, i, userId) ?? throw new ArgumentNullException("Cannot create task");
                 taskIds.Add((int)result2);
             }
-            var result1 = await TestDb.CreateTestToDoAsync(dataSource, unique, 1, userId, true) ?? throw new ArgumentNullException("Cannot create task");
+            var result1 = await TestDb.CreateTestToDoAsync(dataSource, unique, 3, userId, true) ?? throw new ArgumentNullException("Cannot create task");
             taskIds.Add((int)result1);
+            var _ = await TestDb.CreateTestToDoAsync(dataSource, unique, 4, (int)res2) ?? throw new ArgumentNullException("Cannot create task");
             var count = await storage.EfCompletedCloseTask(userId, CancellationToken.None);
             Assert.Equal(3, count);
+            await using var newContext = new ToDoEFContext(options);
+            for (int i = 0; i < 4; i++)
+            {
+                var tasks = await newContext.ToDos.Where(t => t.Id == taskIds[i]).SingleOrDefaultAsync() ?? throw new InvalidOperationException("Task not found");
+                Assert.True(tasks.IsCompleted);
+                Assert.Equal($"task{unique}{i}", tasks.Title);
+                Assert.Equal(tasks.Id, taskIds[i]);
+                Assert.Equal(userId, tasks.OwnerId);
+            }
+            count = await storage.EfCompletedCloseTask(userId, CancellationToken.None);
+            Assert.Equal(0, count);
         }
         finally
         {
             await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
         }
+    }
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(0)]
+    public async Task EfCompletedCloseTask_ThrowsArgumentException_WhenOwnerIdIsInvalid(int value)
+    {
+        string str = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING") ?? throw new InvalidOperationException("Test database connection string not found.");
+        await using NpgsqlDataSource dataSource = NpgsqlDataSource.Create(str);
+        await TestDb.AssertTestDatabaseAsync(dataSource);
+        var options = new DbContextOptionsBuilder<ToDoEFContext>()
+            .UseNpgsql(str)
+            .Options;
+        await using ToDoEFContext context = new(options);
+        StorageEF storage = new(context);
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+        {
+            await storage.EfCompletedCloseTask(value, CancellationToken.None);
+        });
     }
 } 
 

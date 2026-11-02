@@ -160,7 +160,16 @@ public class StorageEF
             throw new ArgumentException();
         }
         
-        var count = await _context.ToDos.Where(t => t.OwnerId == ownerId && !t.IsCompleted).ExecuteUpdateAsync(s => s.SetProperty(t => t.IsCompleted, true), cancellation);
+        var tasks = await _context.ToDos.Where(t => t.OwnerId == ownerId && !t.IsCompleted).ToListAsync(cancellation);
+
+        foreach (var task in tasks)
+        {
+            task.IsCompleted = true;
+        }
+        var count = tasks.Count;
+        await _context.SaveChangesAsync(cancellation);
+
+        //var count = await _context.ToDos.Where(t => t.OwnerId == ownerId && !t.IsCompleted).ExecuteUpdateAsync(s => s.SetProperty(t => t.IsCompleted, true), cancellation);
         return count;
     }
 }
