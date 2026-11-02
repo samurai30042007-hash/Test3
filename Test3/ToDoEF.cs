@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Npgsql;
+using System.ComponentModel;
 using System.Reflection.Metadata.Ecma335;
 namespace Test3;
 
@@ -151,6 +152,16 @@ public class StorageEF
         {
             throw;
         }
+    }
+    public async Task<int> EfCompletedCloseTask(int ownerId,  CancellationToken cancellation)
+    {
+        if (!(ownerId > 0))
+        {
+            throw new ArgumentException();
+        }
+        
+        var count = await _context.ToDos.Where(t => t.OwnerId == ownerId && !t.IsCompleted).ExecuteUpdateAsync(s => s.SetProperty(t => t.IsCompleted, true), cancellation);
+        return count;
     }
 }
 public class ToDoEFContext : DbContext
