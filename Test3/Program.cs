@@ -8,7 +8,6 @@ builder.Services.AddDbContext<ToDoEFContext>(options => options.UseNpgsql(str));
 builder.Services.AddSingleton<NpgsqlDataSource>(_ => NpgsqlDataSource.Create(str));
 builder.Services.AddScoped<StorageEF>();
 builder.Services.AddScoped<Storage>();
-builder.Services.AddScoped<Report>();
 builder.Services.AddProblemDetails();
 //builder.Services.AddDbContext
 
@@ -104,7 +103,15 @@ app.MapGet("/ToDosEF/open", async (StorageEF storage, CancellationToken cancella
     }
     return Results.Ok(ToDos);
 });
-
+app.MapPatch("/ToDoEf/Completed/{ownerId}", async (int ownerId, StorageEF storage, CancellationToken cancellation) =>
+{
+    if (ownerId <= 0)
+    {
+        return Results.BadRequest();
+    }
+    var count = await storage.EfCompletedCloseTask(ownerId, cancellation);
+    return Results.Ok(count);
+});
 
 
 app.MapGet("/ToDos/open", async (StorageEF storage, CancellationToken cancellation, int? limit, int? ownerId) =>

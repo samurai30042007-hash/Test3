@@ -894,6 +894,7 @@ public class StorageEfTest
         finally
         {
             await TestDb.DeleteTestUserAsync(dataSource, unique, 1);
+            await TestDb.DeleteTestUserAsync(dataSource, unique, 2);
         }
     }
     [Theory]
