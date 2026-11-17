@@ -1,16 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Npgsql;
-using System.ComponentModel;
-using System.Reflection.Metadata.Ecma335;
+using Test3.Entity;
+using Test3.Services;
 namespace Test3;
 
 
 
-public class StorageEF
+public class StorageEfService
 {
     private readonly ToDoEFContext _context;
-    public StorageEF(ToDoEFContext context)
+    public StorageEfService(ToDoEFContext context)
     {
         _context = context;
     }
@@ -109,7 +108,7 @@ public class StorageEF
         await _context.SaveChangesAsync(cancellation);
         return true;
     }
-    public async Task<bool> EfTaskDelete(int id,CancellationToken cancellation)
+    public async Task<bool> EfTaskDelete(int id, CancellationToken cancellation)
     {
         var task = await _context.ToDos.Where(t => t.Id == id).SingleOrDefaultAsync(cancellation);
         if (task is null)
@@ -124,7 +123,7 @@ public class StorageEF
     {
         try
         {
-            
+
             if (string.IsNullOrWhiteSpace(title))
             {
                 throw new ArgumentException("Title cannot be null or whitespace.", nameof(title));
@@ -153,13 +152,13 @@ public class StorageEF
             throw;
         }
     }
-    public async Task<int> EfCompletedCloseTask(int ownerId,  CancellationToken cancellation)
+    public async Task<int> EfCompletedCloseTask(int ownerId, CancellationToken cancellation)
     {
         if (!(ownerId > 0))
         {
             throw new ArgumentException();
         }
-        
+
         var tasks = await _context.ToDos.Where(t => t.OwnerId == ownerId && !t.IsCompleted).ToListAsync(cancellation);
 
         foreach (var task in tasks)
@@ -173,33 +172,14 @@ public class StorageEF
         return count;
     }
 }
-public class ToDoEFContext : DbContext
-{
-    public ToDoEFContext(DbContextOptions<ToDoEFContext> options) : base(options)
-    {
-    }
 
-    public DbSet<ToDoEntity> ToDos => Set<ToDoEntity>();
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        var entity = modelBuilder.Entity<ToDoEntity>();
-        entity.ToTable("tasks", "public");
-        entity.HasKey(t => t.Id);
-        entity.Property(t => t.Id).HasColumnName("id");
-        entity.Property(t => t.Title).HasColumnName("title");
-        entity.Property(t => t.IsCompleted).HasColumnName("iscompleted");
-        entity.Property(t => t.OwnerId).HasColumnName("owner_id");
-        entity.Property(t => t.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
-    }
+public enum MessegStoreg
+{
+    NotFound,
+    ForeignKeyViolation,
+    Ok
 }
 
 
-public class ToDoEntity
-{
-    public int Id { get; set; }
-    public string Title { get; set; }
-    public bool IsCompleted { get; set; }
-    public int OwnerId { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
+
 

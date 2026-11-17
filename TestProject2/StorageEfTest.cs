@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Test3.Services;
 using TestProject2.Helpers;
 namespace Test3.Tests;
 // C:\Program Files (x86)\R.G. Mechanics\Command and Conquer - Generals
-public class StorageEfTest
+public class StorageEfServiceTest
 {
     [Fact]
     public async Task EfTaskReader_ReturnsTask()
@@ -14,7 +15,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using var context = new ToDoEFContext(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         await using var dataSource = NpgsqlDataSource.Create(str);
         await TestDb.AssertTestDatabaseAsync(dataSource);
         Guid uniqueId = Guid.NewGuid();
@@ -62,7 +63,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using var context = new ToDoEFContext(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         await using var dataSource = NpgsqlDataSource.Create(str);
         await TestDb.AssertTestDatabaseAsync(dataSource);
         Guid uniqueId = Guid.NewGuid();
@@ -132,7 +133,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using var context = new ToDoEFContext(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         // Act
         var task = await storage.EfTaskReader(-1, CancellationToken.None); // По сути наше бд не может на данный момент иметь отрицательный id, но она может его иметь если будетпоставлен диапазон для вроде Primary Key. Незнаю правильно ли я сделал. Хотя мой ToDo запрещает отрицательные id. Поэтому вероятно ошибка в логике бд
         // Assert
@@ -147,7 +148,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using var context = new ToDoEFContext(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         await using var dataSource = NpgsqlDataSource.Create(str);
         await TestDb.AssertTestDatabaseAsync(dataSource);
         Guid uniqueId = Guid.NewGuid();
@@ -223,7 +224,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using var context = new ToDoEFContext(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         await using var dataSource = NpgsqlDataSource.Create(str);
         await TestDb.AssertTestDatabaseAsync(dataSource);
         Guid uniqueId = Guid.NewGuid();
@@ -306,7 +307,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using var context = new ToDoEFContext(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         await using var dataSource = NpgsqlDataSource.Create(str);
         await TestDb.AssertTestDatabaseAsync(dataSource);
         Guid uniqueId = Guid.NewGuid();
@@ -379,7 +380,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using var context = new ToDoEFContext(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         await using var dataSource = NpgsqlDataSource.Create(str);
         await TestDb.AssertTestDatabaseAsync(dataSource);
         Guid uniqueId = Guid.NewGuid();
@@ -450,7 +451,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using var context = new ToDoEFContext(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -469,7 +470,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         int userId;
         Guid unique = Guid.NewGuid();
         try
@@ -507,7 +508,7 @@ public class StorageEfTest
         {
             {
                 await using ToDoEFContext context = new(options);
-                StorageEF storage = new(context);
+                StorageEfService storage = new(context);
                 var result = await TestDb.CreateTestUserAsync(dataSource, unique, 1) ?? throw new ArgumentNullException("Cannot create user");
                 userId = (int)result;
 
@@ -547,7 +548,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         Guid unique = Guid.NewGuid();
         int userId;
         try
@@ -589,7 +590,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         var isUpdated = await storage.EfTaskUpdateTitle(-1, $"Updated task title{Guid.NewGuid()}", CancellationToken.None);
         Assert.False(isUpdated);
     }
@@ -603,7 +604,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         Guid unique = Guid.NewGuid();
         try
         {
@@ -644,7 +645,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         Guid unique = Guid.NewGuid();
         int userId;
         try
@@ -672,7 +673,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         var isDeleted = await storage.EfTaskDelete(-1, CancellationToken.None);
         Assert.False(isDeleted);
     }
@@ -686,7 +687,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         Guid unique = Guid.NewGuid();
         int userId1;
         int userId2;
@@ -728,7 +729,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         Guid unique = Guid.NewGuid();
         int userId;
         try
@@ -774,7 +775,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         Guid unique = Guid.NewGuid();
         int userId;
         try
@@ -803,7 +804,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         Guid unique = Guid.NewGuid();
         int userId;
         try
@@ -831,7 +832,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         Guid unique = Guid.NewGuid();
         int userId;
         try
@@ -860,7 +861,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         Guid unique = Guid.NewGuid();
         int userId;
         try
@@ -909,7 +910,7 @@ public class StorageEfTest
             .UseNpgsql(str)
             .Options;
         await using ToDoEFContext context = new(options);
-        StorageEF storage = new(context);
+        StorageEfService storage = new(context);
         await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
             await storage.EfCompletedCloseTask(value, CancellationToken.None);

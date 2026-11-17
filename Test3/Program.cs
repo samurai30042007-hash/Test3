@@ -1,20 +1,22 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Test3.Contracts;
+using Test3.Entity;
 using Test3;
+using Test3.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var str = builder.Configuration.GetConnectionString("ToDoDb") ?? throw new Exception(message: "Not find db config");
 builder.Services.AddDbContext<ToDoEFContext>(options => options.UseNpgsql(str));
 builder.Services.AddSingleton<NpgsqlDataSource>(_ => NpgsqlDataSource.Create(str));
-builder.Services.AddScoped<StorageEF>();
-builder.Services.AddScoped<Storage>();
+builder.Services.AddScoped<StorageEfService>();
 builder.Services.AddProblemDetails();
 //builder.Services.AddDbContext
 
 var app = builder.Build();
 app.UseExceptionHandler();
 
-app.MapPut("/EfToDos/{id}", async (int id, UpdateTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
+app.MapPut("/EfToDos/{id}", async (int id, UpdateTaskRequest request, StorageEfService storage, CancellationToken cancellation) =>
 {
     var result = await storage.EfTaskPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation);
     return result switch
@@ -25,7 +27,7 @@ app.MapPut("/EfToDos/{id}", async (int id, UpdateTaskRequest request, StorageEF 
         _ => Results.Problem("An error occurred while updating the task.") // Что это делает?
     };
 });
-app.MapDelete("/EFToDos/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
+app.MapDelete("/EFToDos/{id}", async (int id, StorageEfService storage, CancellationToken cancellation) =>
 {
     bool isDeleted = await storage.EfTaskDelete(id, cancellation);
     if (!isDeleted)
@@ -34,7 +36,7 @@ app.MapDelete("/EFToDos/{id}", async (int id, StorageEF storage, CancellationTok
     }
     return Results.NoContent();
 });
-app.MapPatch("/ToDosEF/{id}/Title", async (int id, UpdateTitleTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
+app.MapPatch("/ToDosEF/{id}/Title", async (int id, UpdateTitleTaskRequest request, StorageEfService storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
@@ -47,7 +49,7 @@ app.MapPatch("/ToDosEF/{id}/Title", async (int id, UpdateTitleTaskRequest reques
     }
     return Results.Ok();
 });
-app.MapPost("/ToDosEF", async (CreateTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
+app.MapPost("/ToDosEF", async (CreateTaskRequest request, StorageEfService storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
@@ -59,7 +61,7 @@ app.MapPost("/ToDosEF", async (CreateTaskRequest request, StorageEF storage, Can
     }
     return Results.Ok(await storage.EfTaskCreate(request.Title, request.OwnerId, false, cancellation));
 });
-app.MapGet("/ToDosEF/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
+app.MapGet("/ToDosEF/{id}", async (int id, StorageEfService storage, CancellationToken cancellation) =>
 {
     var tasks = await storage.EfTaskReader(id , cancellation);
     if (tasks is null)
@@ -68,7 +70,7 @@ app.MapGet("/ToDosEF/{id}", async (int id, StorageEF storage, CancellationToken 
     }
     return Results.Ok(tasks);
 });
-app.MapGet("/ToDosEF/OwnerId/{ownerId}", async (StorageEF storage, CancellationToken cancellation, int ownerId, bool? isCompleted) =>
+app.MapGet("/ToDosEF/OwnerId/{ownerId}", async (StorageEfService storage, CancellationToken cancellation, int ownerId, bool? isCompleted) =>
 {
     List<ToDoEntity> ToDos;
     try
@@ -81,7 +83,7 @@ app.MapGet("/ToDosEF/OwnerId/{ownerId}", async (StorageEF storage, CancellationT
     }
     return Results.Ok(ToDos);
 });
-app.MapGet("/ToDosEF/open", async (StorageEF storage, CancellationToken cancellation, int? limit, int? ownerId) =>
+app.MapGet("/ToDosEF/open", async (StorageEfService storage, CancellationToken cancellation, int? limit, int? ownerId) =>
 {
     if (limit == null)
     {
@@ -103,7 +105,7 @@ app.MapGet("/ToDosEF/open", async (StorageEF storage, CancellationToken cancella
     }
     return Results.Ok(ToDos);
 });
-app.MapPatch("/ToDoEf/Completed/{ownerId}", async (int ownerId, StorageEF storage, CancellationToken cancellation) =>
+app.MapPatch("/ToDoEf/Completed/{ownerId}", async (int ownerId, StorageEfService storage, CancellationToken cancellation) =>
 {
     if (ownerId <= 0)
     {
@@ -114,7 +116,7 @@ app.MapPatch("/ToDoEf/Completed/{ownerId}", async (int ownerId, StorageEF storag
 });
 
 
-app.MapGet("/ToDos/open", async (StorageEF storage, CancellationToken cancellation, int? limit, int? ownerId) =>
+app.MapGet("/ToDos/open", async (StorageEfService storage, CancellationToken cancellation, int? limit, int? ownerId) =>
 {
     if (limit == null)
     {
@@ -136,7 +138,7 @@ app.MapGet("/ToDos/open", async (StorageEF storage, CancellationToken cancellati
     }
     return Results.Ok(ToDos);
 });
-app.MapGet("/ToDos", async(StorageEF storage, CancellationToken cancellation, int? ownerId) =>
+app.MapGet("/ToDos", async(StorageEfService storage, CancellationToken cancellation, int? ownerId) =>
 {
     if (ownerId <= 0)
     {
@@ -154,7 +156,7 @@ app.MapGet("/ToDos", async(StorageEF storage, CancellationToken cancellation, in
     }
 
 });
-app.MapGet("/ToDo/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
+app.MapGet("/ToDo/{id}", async (int id, StorageEfService storage, CancellationToken cancellation) =>
 {
     var task = await storage.EfTaskReader(id, cancellation);
     if (task is null)
@@ -163,7 +165,7 @@ app.MapGet("/ToDo/{id}", async (int id, StorageEF storage, CancellationToken can
     }
     return Results.Ok(task);
 });
-app.MapPost("/ToDo",  async (CreateTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
+app.MapPost("/ToDo",  async (CreateTaskRequest request, StorageEfService storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
@@ -184,7 +186,7 @@ app.MapPost("/ToDo",  async (CreateTaskRequest request, StorageEF storage, Cance
     }
     return Results.Created($"/ToDo/{task.Id}", task); 
 });
-app.MapPatch("/ToDo/{id}/Title", async (int id, UpdateTitleTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
+app.MapPatch("/ToDo/{id}/Title", async (int id, UpdateTitleTaskRequest request, StorageEfService storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
@@ -199,7 +201,7 @@ app.MapPatch("/ToDo/{id}/Title", async (int id, UpdateTitleTaskRequest request, 
 
 
 });
-app.MapPatch("/ToDo/{id}/IsCompleted", async (int id, UpdateIsCompletedTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
+app.MapPatch("/ToDo/{id}/IsCompleted", async (int id, UpdateIsCompletedTaskRequest request, StorageEfService storage, CancellationToken cancellation) =>
 {
 
     if (!await storage.EfTaskUpdateIsCompleted(id, request.IsCompleted, cancellation))
@@ -208,7 +210,7 @@ app.MapPatch("/ToDo/{id}/IsCompleted", async (int id, UpdateIsCompletedTaskReque
     }
     return Results.Ok(await storage.EfTaskReader(id, cancellation));
 });
-app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, StorageEF storage, CancellationToken cancellation) =>
+app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, StorageEfService storage, CancellationToken cancellation) =>
 {
     if (string.IsNullOrWhiteSpace(request.Title))
     {
@@ -237,7 +239,7 @@ app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, StorageEF sto
                 throw new ArgumentException("Invalid MessegStoreg value");
     }
 });
-app.MapDelete("/ToDo/{id}", async (int id, StorageEF storage, CancellationToken cancellation) =>
+app.MapDelete("/ToDo/{id}", async (int id, StorageEfService storage, CancellationToken cancellation) =>
 {
     if (!await storage.EfTaskDelete(id, cancellation))
     {
