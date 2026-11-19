@@ -10,25 +10,30 @@ public class ToDoEFContext(DbContextOptions<ToDoEFContext> options) : DbContext(
     public DbSet<User> UserDb => Set<User>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        {
-            var entity = modelBuilder.Entity<ToDoEntity>();
-            entity.ToTable("tasks", "public");
-            entity.HasKey(t => t.Id);
-            entity.Property(t => t.Id).HasColumnName("id");
-            entity.Property(t => t.Title).HasColumnName("title");
-            entity.Property(t => t.IsCompleted).HasColumnName("iscompleted");
-            entity.Property(t => t.OwnerId).HasColumnName("owner_id");
-            entity.Property(t => t.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
-        }
+
         {
             var entity = modelBuilder.Entity<User>();
             entity.ToTable("users", "public").ToTable(u => u.HasCheckConstraint("users_name_check", "length(trim(name)) > 0"));
-            entity.HasKey(u => u.Id);
-            entity.Property(u => u.Id).UseIdentityAlwaysColumn().HasColumnName("id");
+            entity.HasKey(u => u.Id).HasName("users_pkey");
+            entity.Property(u => u.Id).UseIdentityAlwaysColumn().HasColumnName("id").UseIdentityAlwaysColumn();
             entity.Property(u => u.Name).IsRequired().HasColumnName("name");
             entity.Property(u => u.Email).IsRequired().HasColumnName("email");
             entity.HasAlternateKey(u => u.Email).HasName("users_email_key");
         }
+        {
+            var entity = modelBuilder.Entity<ToDoEntity>();
+            entity.ToTable("tasks", "public").ToTable(t => t.HasCheckConstraint("tasks_title_check", "length(trim(title)) > 0"));
+            entity.HasKey(t => t.Id).HasName("tasks_pkey");
+            entity.Property(t => t.Id).HasColumnName("id").UseIdentityAlwaysColumn();
+            entity.Property(t => t.Title).HasColumnName("title").IsRequired();
+            entity.Property(t => t.IsCompleted).HasColumnName("iscompleted").IsRequired().HasDefaultValueSql("false"); // Чем HasDefaultValueSql отличается от HasDefaultValue?
+            entity.Property(t => t.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP").IsRequired();
+            entity.HasOne<User>().WithMany()
+                .HasForeignKey(t => t.OwnerId)
+                .HasConstraintName("tasks_user_id_fkey")
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+        
 
     }
 }
