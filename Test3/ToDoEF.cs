@@ -48,7 +48,7 @@ public class StorageEfService
             .Take(limit)
             .ToListAsync(cancellation);
     }
-    public async Task<ToDoEntity?> EfTaskCreate(string title, int ownerId, bool isCompleted, CancellationToken cancellation)
+    public async Task<ToDoEntity?> EfTaskCreate(string title, int ownerId, bool isCompleted,string? description ,CancellationToken cancellation)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -58,11 +58,16 @@ public class StorageEfService
         {
             throw new ArgumentException("Wrong value. OwnerId should be graeter than 0");
         }
+        else if (description is not null && string.IsNullOrWhiteSpace(description))
+        {
+            throw new ArgumentException("Wrong value. Description is whitespace");
+        }
         var Entity = new ToDoEntity
         {
             Title = title,
             OwnerId = ownerId,
-            IsCompleted = isCompleted
+            IsCompleted = isCompleted, 
+            Description = description
         };
         _context.ToDos.Add(Entity);
         int result;
@@ -131,6 +136,10 @@ public class StorageEfService
             if (ownerId <= 0)
             {
                 throw new ArgumentException("OwnerId cannot be less than or equal to 0.", nameof(ownerId));
+            }
+            if (description is not null && string.IsNullOrWhiteSpace(description))
+            {
+                throw new ArgumentException("Wrong value. Description is whitespace");
             }
             var task = await _context.ToDos.Where(t => t.Id == id).SingleOrDefaultAsync(cancellation);
             if (task is null)

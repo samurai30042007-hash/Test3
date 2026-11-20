@@ -59,7 +59,7 @@ app.MapPost("/ToDosEF", async (CreateTaskRequest request, StorageEfService stora
     {
         return Results.BadRequest("OwnerId must be greater than zero.");
     }
-    return Results.Ok(await storage.EfTaskCreate(request.Title, request.OwnerId, false, cancellation));
+    return Results.Ok(await storage.EfTaskCreate(request.Title, request.OwnerId, false, request.Description ,cancellation));
 });
 app.MapGet("/ToDosEF/{id}", async (int id, StorageEfService storage, CancellationToken cancellation) =>
 {
@@ -174,7 +174,7 @@ app.MapPost("/ToDo",  async (CreateTaskRequest request, StorageEfService storage
     ToDoEntity? task;
     try
     {
-        task = await storage.EfTaskCreate(request.Title, request.OwnerId, false, cancellation);
+        task = await storage.EfTaskCreate(request.Title, request.OwnerId, false,request.Description ,cancellation);
     }
     catch(ArgumentException)
     {
