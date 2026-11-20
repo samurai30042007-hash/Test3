@@ -37,11 +37,16 @@ namespace Test3.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
                     b.Property<bool>("IsCompleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
-                        .HasColumnName("iscompleted")
-                        .HasDefaultValueSql("false");
+                        .HasDefaultValue(false)
+                        .HasColumnName("iscompleted");
 
                     b.Property<int>("OwnerId")
                         .HasColumnType("integer")

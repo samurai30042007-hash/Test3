@@ -26,8 +26,9 @@ public class ToDoEFContext(DbContextOptions<ToDoEFContext> options) : DbContext(
             entity.HasKey(t => t.Id).HasName("tasks_pkey");
             entity.Property(t => t.Id).HasColumnName("id").UseIdentityAlwaysColumn();
             entity.Property(t => t.Title).HasColumnName("title").IsRequired();
-            entity.Property(t => t.IsCompleted).HasColumnName("iscompleted").IsRequired().HasDefaultValueSql("false"); 
+            entity.Property(t => t.IsCompleted).HasColumnName("iscompleted").IsRequired().HasDefaultValue(false);
             entity.Property(t => t.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP").IsRequired();
+            entity.Property(t => t.Description).HasColumnName("description").HasMaxLength(500);
             entity.Property(t => t.OwnerId).HasColumnName("owner_id").IsRequired();
             entity.HasOne<User>().WithMany()
                 .HasForeignKey(t => t.OwnerId)
