@@ -18,7 +18,7 @@ app.UseExceptionHandler();
 
 app.MapPut("/EfToDos/{id}", async (int id, UpdateTaskRequest request, StorageEfService storage, CancellationToken cancellation) =>
 {
-    var result = await storage.EfTaskPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation);
+    var result = await storage.EfTaskPut(id, request.Title, request.IsCompleted, request.OwnerId, request.Description, cancellation);
     return result switch
     {
         MessegStoreg.Ok => Results.Ok(),
@@ -220,7 +220,7 @@ app.MapPut("/ToDo/{id}", async (int id, UpdateTaskRequest request, StorageEfServ
     {
         return Results.BadRequest("OwnerId must be greater than zero.");
     }
-    var result = await storage.EfTaskPut(id, request.Title, request.IsCompleted, request.OwnerId, cancellation);
+    var result = await storage.EfTaskPut(id, request.Title, request.IsCompleted, request.OwnerId,request.Description,  cancellation);
     switch (result) // вообще я только понял что по хорошему нужно передавать request
     {
         case MessegStoreg.Ok:

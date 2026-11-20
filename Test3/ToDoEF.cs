@@ -119,7 +119,7 @@ public class StorageEfService
         await _context.SaveChangesAsync(cancellation);
         return true;
     }
-    public async Task<MessegStoreg> EfTaskPut(int id, string? title, bool isCompleted, int ownerId, CancellationToken cancellation)
+    public async Task<MessegStoreg> EfTaskPut(int id, string? title, bool isCompleted, int ownerId,string? description,  CancellationToken cancellation)
     {
         try
         {
@@ -140,6 +140,7 @@ public class StorageEfService
             task.Title = title;
             task.IsCompleted = isCompleted;
             task.OwnerId = ownerId;
+            task.Description = description;
             await _context.SaveChangesAsync(cancellation);
             return MessegStoreg.Ok;
         }
