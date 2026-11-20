@@ -12,40 +12,30 @@
 
 - .NET 10 SDK
 - PostgreSQL
+- `dotnet-ef` версии, совместимой с используемой версией EF Core
 
 Для получения и настройки проекта также понадобятся:
 
 - Git
 - терминал
-- pgAdmin или `psql` для создания БД и выполнения SQL-скриптов
+- pgAdmin или `psql` для создания БД и при необходимости выполнения SQL-запросов
 
 ## Настройка
 
 ### 1. Создание БД
 
-Создай пустую PostgreSQL БД, например:
+Создай **пустую** PostgreSQL БД `todo_api_migrations_lab`. Таблицы в ней будут созданы через EF Core Migrations (инструкция ниже).
 
-```
-todo_api
-```
-
-SQL-файлы находятся в основном проекте:
+Старые SQL-файлы остаются в проекте для отдельных SQL-упражнений:
 
 ```
 Test3/sql 2/
-├── 01_schema.sql   # создание таблиц users и tasks
+├── 01_schema.sql   # ручное создание таблиц users и tasks
 ├── 02_seed.sql     # тестовые данные
 └── 03_queries.sql  # примеры SQL-запросов
 ```
 
-В созданной БД выполни:
-
-```
-01_schema.sql
-02_seed.sql
-```
-
-`02_seed.sql` предназначен для новой учебной БД и необязателен, если начальные данные не нужны.
+**Не запускай `01_schema.sql` в базе, для которой собираешься применять `InitialCreate`: таблицы будут созданы миграцией.** Не выполняй учебные миграции на существующих `todo_api` и `todo_api_test`.
 
 ### 2. Connection String
 
@@ -54,7 +44,7 @@ Test3/sql 2/
 Из корня репозитория:
 
 ```bash
-dotnet user-secrets --project Test3/Test3.csproj set "ConnectionStrings:ToDoDb" "Host=localhost;Port=5432;Database=todo_api;Username=postgres;Password=YOUR_PASSWORD"
+dotnet user-secrets --project Test3/Test3.csproj set "ConnectionStrings:ToDoDb" "Host=localhost;Port=5432;Database=todo_api_migrations_lab;Username=postgres;Password=YOUR_PASSWORD"
 ```
 
 ### 3. Запуск
@@ -68,6 +58,41 @@ dotnet run --project Test3/Test3.csproj
 ```
 http://localhost:5177
 ```
+
+## Миграции EF Core
+
+Схема новой базы данных создаётся и изменяется через EF Core Migrations. Файлы миграций находятся в `Test3/Migrations/`.
+
+В проекте созданы две миграции:
+
+| Миграция | Назначение |
+| --- | --- |
+| `InitialCreate` | Создаёт таблицы `users`, `tasks`, ограничения и индекс внешнего ключа |
+| `AddDescription` | Добавляет nullable-столбец `description` типа `text` в таблицу `tasks` |
+
+### Создание базы с помощью миграций
+
+Создай пустую базу PostgreSQL `todo_api_migrations_lab`. Для выполнения команд потребуется `dotnet-ef`, совместимый с используемой версией EF Core.
+
+В PowerShell задай подключение к учебной базе для текущей сессии:
+
+```powershell
+$env:ConnectionStrings__ToDoDb = "Host=localhost;Port=5432;Database=todo_api_migrations_lab;Username=postgres;Password=YOUR_PASSWORD"
+```
+
+Из корня репозитория проверь, что выбран нужный DbContext и база данных:
+
+```powershell
+dotnet ef dbcontext info --context ToDoEFContext --project Test3/Test3.csproj --startup-project Test3/Test3.csproj
+```
+
+Убедись, что в выводе указана `todo_api_migrations_lab`. Затем примени все ожидающие миграции:
+
+```powershell
+dotnet ef database update --context ToDoEFContext --project Test3/Test3.csproj --startup-project Test3/Test3.csproj
+```
+
+**Важно:** не выполняй `01_schema.sql` в базе, которую создаёшь через `InitialCreate`. Скрипт уже создаёт таблицы, которыми управляет миграция.
 
 ## API
 
@@ -89,6 +114,7 @@ http://localhost:5177
 ```json
 {
   "title": "Learn ASP.NET Core",
+  "description": "Изучить EF Core Migrations",
   "ownerId": 1
 }
 ```
@@ -115,7 +141,8 @@ http://localhost:5177
 {
   "title": "Updated task",
   "isCompleted": true,
-  "ownerId": 1
+  "ownerId": 1,
+  "description": "Обновлённое описание задачи"
 }
 ```
 
