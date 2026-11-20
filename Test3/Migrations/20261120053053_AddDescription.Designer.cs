@@ -12,7 +12,7 @@ using Test3.Services;
 namespace Test3.Migrations
 {
     [DbContext(typeof(ToDoEFContext))]
-    [Migration("20261120052936_AddDescription")]
+    [Migration("20261120053053_AddDescription")]
     partial class AddDescription
     {
         /// <inheritdoc />
@@ -41,15 +41,14 @@ namespace Test3.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
+                        .HasColumnType("text")
                         .HasColumnName("description");
 
                     b.Property<bool>("IsCompleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("iscompleted");
+                        .HasColumnName("iscompleted")
+                        .HasDefaultValueSql("false");
 
                     b.Property<int>("OwnerId")
                         .HasColumnType("integer")
