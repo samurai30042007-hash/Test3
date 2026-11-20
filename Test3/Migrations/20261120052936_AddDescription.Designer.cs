@@ -12,7 +12,7 @@ using Test3.Services;
 namespace Test3.Migrations
 {
     [DbContext(typeof(ToDoEFContext))]
-    [Migration("20261120052433_AddDescription")]
+    [Migration("20261120052936_AddDescription")]
     partial class AddDescription
     {
         /// <inheritdoc />
